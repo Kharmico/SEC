@@ -8,7 +8,7 @@ KStore will save each user's Private Key
 Map each entry user with a hash
 
 Boot server: -KStore
-Use EBC as Cipher Mode
+Use AES/ECB/NoPadding as Cipher Mode
 
 Load user's file from memory (not safe but they don't care for now)
 
