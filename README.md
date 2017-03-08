@@ -16,5 +16,6 @@ Server has 2 files: -1 KeyStore for each user's PrivateKey
                     -1 txt file(eg) ciphered with each user's domain, username, password
 
 Each user has its own KeyStore
+
 -----------------------------------------------------------------------------------------
                  
