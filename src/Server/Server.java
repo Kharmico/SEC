@@ -4,6 +4,11 @@
 package Server;
 import java.security.*;
 
+import Exceptions.DomainNotFoundException;
+import Exceptions.UserAlreadyRegisteredException;
+import Exceptions.UserNotRegisteredException;
+import Exceptions.UsernameNotFoundException;
+
 /**
  * @author paulo
  *
@@ -16,7 +21,7 @@ public interface Server {
 	 * @throws Anomalous or unauthorized an appropriate exception or error code
 	 * TODO: error codes??
 	 */
-	public void register(Key publicKey);
+	public void register(Key publicKey) throws  UserAlreadyRegisteredException;
 	
 	/**
 	 * stores the triple (domain, username, password) on the server.
@@ -28,16 +33,20 @@ public interface Server {
 	 * @param password
 	 */
 	
-	public void put(Key publicKey, byte[] domain, byte[] username, byte[] password);
+	public void put(Key publicKey, byte[] domain, byte[] username, byte[] password)throws UserNotRegisteredException;
 	
 	/**
 	 * retrieves the password associated with the given (domain,username) pair.
+	 /**
 	 * @param publicKey
 	 * @param domain
 	 * @param username
-	 * @return
+	 * @return password
+	 * @throws UsernameNotFoundException
+	 * @throws UsernameNotFoundException
 	 */
 	
-	public byte[] get(Key publicKey, byte[] domain, byte[] username);
+	
+	public byte[] get(Key publicKey, byte[] domain, byte[] username) throws UsernameNotFoundException, DomainNotFoundException;
 
 }
