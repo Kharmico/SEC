@@ -3,6 +3,7 @@
  */
 package Server;
 
+import java.io.Serializable;
 import java.security.Key;
 import java.util.Hashtable;
 import java.util.Map;
@@ -13,8 +14,8 @@ import Exceptions.*;
  * @author paulo
  *
  */
-public class User {
-
+public class User implements Serializable{
+	private static final long serialVersionUID = 1L;
 	private ByteArrayWrapper pubKey;
 //domain /user/pass
 	private Map<ByteArrayWrapper, Hashtable<ByteArrayWrapper, ByteArrayWrapper>> userTriples;

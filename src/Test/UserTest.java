@@ -1,5 +1,6 @@
 package Test;
 
+import static org.junit.Assert.*;
 
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -27,7 +28,12 @@ public class UserTest extends TestCase {
 	private static final byte[] USER2 = "coolguysuper".getBytes();
 	private Map<ByteArrayWrapper, Hashtable<ByteArrayWrapper, ByteArrayWrapper>> userTriples;
 	private Hashtable<ByteArrayWrapper, ByteArrayWrapper> userNamesDuples;
-
+	byte[] p1 = "superPass".getBytes();
+	byte[] p1Copy="superPass".getBytes();
+	byte[] p2 = "superPass2".getBytes();
+	byte[] p2Copy="superPass2".getBytes();
+	byte[] p3 = "novaPass".getBytes();
+	byte[] p3Copy="novaPass".getBytes();
 	/**
 	 * Sets up the test fixture. (Called before every test case method.)
 	 */
@@ -112,8 +118,7 @@ public class UserTest extends TestCase {
 		userTriples = u.getTriples();
 		assertEquals(userTriples.size(),0);
 
-		byte[] p1 = "superPass".getBytes();
-		byte[] p2 = "superPass2".getBytes();
+		
 
 		u.put(DOMAIN1, USER1, p1);
 		
@@ -129,14 +134,14 @@ public class UserTest extends TestCase {
 		
 		assertEquals(userTriples.size(),1);
 		assertEquals(userNamesDuples.size(),2);
-		assertEquals(u.get(DOMAIN1, USER1), p1);
-		assertEquals(u.get(DOMAIN1, USER2), p2);
+		assertArrayEquals(u.get(DOMAIN1, USER1), p1Copy);
+		assertArrayEquals(u.get(DOMAIN1, USER2), p2Copy);
 		
 		userTriples = u.getTriples();
 		assertEquals(userTriples.size(),1);
 
-		assertEquals(u.get(DOMAIN1, USER1), p1);
-		assertEquals(u.get(DOMAIN1, USER2), p2);
+		assertArrayEquals(u.get(DOMAIN1, USER1), p1Copy);
+		assertArrayEquals(u.get(DOMAIN1, USER2), p2Copy);
 		
 		//-----------------------------------------
 	
@@ -153,16 +158,16 @@ public class UserTest extends TestCase {
 		}
 		
 		// quando inserimos uma pass num domain e username que já existe, ou seja mudamos a pass
-		byte[] p3 = "novaPass".getBytes();
+		
 		u.put(DOMAIN1, USER1, p3);
 		
 		userTriples = u.getTriples();
 		userNamesDuples = userTriples.get( new ByteArrayWrapper(DOMAIN1));
-		assertEquals(u.get(DOMAIN1, USER1), p3);
+		assertArrayEquals(u.get(DOMAIN1, USER1), p3Copy);
 		assertEquals(userTriples.size(),1);
 		assertEquals(userNamesDuples.size(),2);
-		assertEquals(u.get(DOMAIN1, USER1), p3);
-		assertEquals(u.get(DOMAIN1, USER2), p2);
+		assertArrayEquals(u.get(DOMAIN1, USER1), p3Copy);
+		assertArrayEquals(u.get(DOMAIN1, USER2), p2Copy);
 		
 		userNamesDuples = userTriples.get( new ByteArrayWrapper(DOMAIN2));
 		assertNull(userNamesDuples);	
@@ -186,13 +191,13 @@ public class UserTest extends TestCase {
 		
 		assertEquals(userTriples.size(),2);
 		assertEquals(userNamesDuples.size(),2);
-		assertEquals(u.get(DOMAIN2, USER1), p1);
-		assertEquals(u.get(DOMAIN2, USER2), p2);
+		assertArrayEquals(u.get(DOMAIN2, USER1), p1Copy);
+		assertArrayEquals(u.get(DOMAIN2, USER2), p2Copy);
 		
 		userTriples = u.getTriples();
 		assertEquals(userTriples.size(),2);
-		assertEquals(u.get(DOMAIN2, USER1), p1);
-		assertEquals(u.get(DOMAIN2, USER2), p2);
+		assertArrayEquals(u.get(DOMAIN2, USER1), p1Copy);
+		assertArrayEquals(u.get(DOMAIN2, USER2), p2Copy);
 		
 		//-----------------------------------------
 	}
@@ -218,8 +223,7 @@ public class UserTest extends TestCase {
 		userTriples = u.getTriples();
 		assertEquals(userTriples.size(),0);
 
-		byte[] p1 = "superPass".getBytes();
-		byte[] p2 = "superPass2".getBytes();
+		
 
 		u.put(DOMAIN1, USER1, p1);
 		
@@ -235,14 +239,14 @@ public class UserTest extends TestCase {
 		
 		assertEquals(userTriples.size(),1);
 		assertEquals(userNamesDuples.size(),2);
-		assertEquals(u.get(DOMAIN1, USER1), p1);
-		assertEquals(u.get(DOMAIN1, USER2), p2);
+		assertArrayEquals(u.get(DOMAIN1, USER1), p1Copy);
+		assertArrayEquals(u.get(DOMAIN1, USER2), p2);
 		
 		userTriples = u.getTriples();
 		assertEquals(userTriples.size(),1);
 
-		assertEquals(u.get(DOMAIN1, USER1), p1);
-		assertEquals(u.get(DOMAIN1, USER2), p2);
+		assertArrayEquals(u.get(DOMAIN1, USER1), p1);
+		assertArrayEquals(u.get(DOMAIN1, USER2), p2);
 		
 		//-----------------------------------------
 	
@@ -263,16 +267,16 @@ public class UserTest extends TestCase {
 		}
 		
 		// quando inserimos uma pass num domain e username que já existe, ou seja mudamos a pass
-		byte[] p3 = "novaPass".getBytes();
+		
 		u.put(DOMAIN1, USER1, p3);
 		
 		userTriples = u.getTriples();
 		userNamesDuples = userTriples.get( new ByteArrayWrapper(DOMAIN1));
-		assertEquals(u.get(DOMAIN1, USER1), p3);
+		assertArrayEquals(u.get(DOMAIN1, USER1), p3Copy);
 		assertEquals(userTriples.size(),1);
 		assertEquals(userNamesDuples.size(),2);
-		assertEquals(u.get(DOMAIN1, USER1), p3);
-		assertEquals(u.get(DOMAIN1, USER2), p2);
+		assertArrayEquals(u.get(DOMAIN1, USER1), p3Copy);
+		assertArrayEquals(u.get(DOMAIN1, USER2), p2Copy);
 		
 		userNamesDuples = userTriples.get( new ByteArrayWrapper(DOMAIN2));
 		assertNull(userNamesDuples);	
@@ -296,13 +300,13 @@ public class UserTest extends TestCase {
 		
 		assertEquals(userTriples.size(),2);
 		assertEquals(userNamesDuples.size(),2);
-		assertEquals(u.get(DOMAIN2, USER1), p1);
-		assertEquals(u.get(DOMAIN2, USER2), p2);
+		assertArrayEquals(u.get(DOMAIN2, USER1), p1Copy);
+		assertArrayEquals(u.get(DOMAIN2, USER2), p2Copy);
 		
 		userTriples = u.getTriples();
 		assertEquals(userTriples.size(),2);
-		assertEquals(u.get(DOMAIN2, USER1), p1);
-		assertEquals(u.get(DOMAIN2, USER2), p2);
+		assertArrayEquals(u.get(DOMAIN2, USER1), p1Copy);
+		assertArrayEquals(u.get(DOMAIN2, USER2), p2Copy);
 		
 		//-----------------------------------------
 	

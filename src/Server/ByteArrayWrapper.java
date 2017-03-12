@@ -35,7 +35,8 @@ public  class ByteArrayWrapper implements Serializable
         {
             return false;
         }
-        return Arrays.equals(data, ((ByteArrayWrapper)other).data);
+        return Arrays.equals(data, ((ByteArrayWrapper)other).getData());
+     
     }
 
     @Override
