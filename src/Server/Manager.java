@@ -39,21 +39,23 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.omg.CORBA.Context;
 
+import Exceptions.DomainNotFoundException;
 import Exceptions.UserAlreadyRegisteredException;
 import Exceptions.UserNotRegisteredException;
+import Exceptions.UsernameNotFoundException;
 
 /**
  * @author paulo
  *
  */
-public class ServerImpl implements Server {
+public class Manager  {
 
 	public static final String PRIVATE_KEY_ALIAS = "privateServerKey";
 	private static final String SECRET_KEY_ALIAS = "secretServerKey";
 
 	private static final String KS_PAHT = System.getProperty("user.dir") + "\\Resources\\KeyStore.jks";
 	public static final String USERS_FILE = System.getProperty("user.dir") + "\\Resources\\Users";
-	private static final int PORT = 4444;
+	
 
 	private static final String CIPHER_ALG = "AES/ECB/PKCS5Padding";
 
@@ -66,37 +68,37 @@ public class ServerImpl implements Server {
 		this.ksPassword = new PasswordProtection(password);
 	}
 
-	public ServerImpl(char[] ksPassword)
+	public Manager(char[] ksPassword)
 			throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
 		this.serverImpl(ksPassword);
 		loadKeyStore(KS_PAHT);
 	}
 
-	public ServerImpl(String file, char[] ksPassword)
+	public Manager(String file, char[] ksPassword)
 			throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
 		this.serverImpl(ksPassword);
 		loadKeyStore(file);
 
 	}
 
-	@Override
-	public void register(Key publicKey) {
+	
+	public void register(Key publicKey) throws UserAlreadyRegisteredException {
 		ByteArrayWrapper pk = new ByteArrayWrapper(Base64.getEncoder().encode(publicKey.getEncoded()));
 		if (this.users.containsKey(pk))
 			throw new UserAlreadyRegisteredException();
 		this.users.put(pk, new User(pk));
 	}
 
-	@Override
-	public void put(Key publicKey, byte[] domain, byte[] username, byte[] password) {
+	
+	public void put(Key publicKey, byte[] domain, byte[] username, byte[] password) throws UserNotRegisteredException{
 		ByteArrayWrapper pk = new ByteArrayWrapper(Base64.getEncoder().encode(publicKey.getEncoded()));
 		if (!this.users.containsKey(pk))
 			throw new UserNotRegisteredException();
 		this.users.get(pk).put(domain, username, password);
 	}
 
-	@Override
-	public byte[] get(Key publicKey, byte[] domain, byte[] username) {
+	
+	public byte[] get(Key publicKey, byte[] domain, byte[] username) throws UserNotRegisteredException,DomainNotFoundException,UsernameNotFoundException {
 
 		ByteArrayWrapper pk = new ByteArrayWrapper(Base64.getEncoder().encode(publicKey.getEncoded()));
 		if (!this.users.containsKey(pk))

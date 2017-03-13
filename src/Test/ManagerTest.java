@@ -39,13 +39,13 @@ import Exceptions.UserNotRegisteredException;
 import Exceptions.UsernameNotFoundException;
 import Server.ByteArrayWrapper;
 
-import Server.ServerImpl;
+import Server.Manager;
 
 /**
  * @author paulo
  *
  */
-public class ServerImplTest {
+public class ManagerTest {
 
 	private static final char[] KS_PASS = "a26tUfrGg4e4LHX".toCharArray();
 	private static final String KS_PAHT = System.getProperty("user.dir") + "\\Resources\\KeyStoreTest.jks";
@@ -60,11 +60,11 @@ public class ServerImplTest {
 	private Key k3;
 	private SecretKey aesKey = (SecretKey) genKey();
 
-	private ServerImpl s;
+	private Manager s;
 
 	@Before
 	public void setUp() throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
-		s = new ServerImpl(KS_PAHT, KS_PASS);
+		s = new Manager(KS_PAHT, KS_PASS);
 		k1 = genKey();
 		k2 = genKey();
 		k3 = genKey();
@@ -99,27 +99,27 @@ public class ServerImplTest {
 	}
 
 	/**
-	 * Test method for {@link Server.ServerImpl#ServerImpl(char[])}.
+	 * Test method for {@link Server.Manager#Manager(char[])}.
 	 */
 	@Test
-	public final void testServerImplCharArray() {
-		ServerImpl s = null;
+	public final void testManagerCharArray() {
+		Manager s = null;
 
 		try {
 			// pass null a unica coisa que eu acho que deve acontecer é nao
 			// permitir o acesso ao ks mas permite o load
-			s = new ServerImpl(null);
+			s = new Manager(null);
 			assert (s.hasKs());
 
 			try {
-				s = new ServerImpl("wrongpass".toCharArray());
+				s = new Manager("wrongpass".toCharArray());
 				assert (s.hasKs());
 
 			} catch (Exception e) {
 				assert (e instanceof IOException);
 			}
 
-			s = new ServerImpl(KS_PASS);
+			s = new Manager(KS_PASS);
 			assert (s.hasKs());
 
 		} catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException e) {
@@ -131,20 +131,20 @@ public class ServerImplTest {
 
 	/**
 	 * Test method for
-	 * {@link Server.ServerImpl#ServerImpl(java.lang.String, char[])}.
+	 * {@link Server.Manager#Manager(java.lang.String, char[])}.
 	 * 
 	 */
 	@Test
-	public final void testServerImplStringCharArray() {
-		ServerImpl s = null;
+	public final void testManagerStringCharArray() {
+		Manager s = null;
 		try {
 			try {
-				s = new ServerImpl("fakefile.jks", KS_PASS);
+				s = new Manager("fakefile.jks", KS_PASS);
 				assert (!s.hasKs());
 			} catch (Exception e) {
 				assert (e instanceof FileNotFoundException);
 			}
-			s = new ServerImpl(KS_PAHT, KS_PASS);
+			s = new Manager(KS_PAHT, KS_PASS);
 			assert (s.hasKs());
 		} catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException e) {
 
@@ -188,7 +188,7 @@ public class ServerImplTest {
 
 	/**
 	 * Test method for
-	 * {@link Server.ServerImpl#put(java.security.Key, byte[], byte[], byte[])}.
+	 * {@link Server.Manager#put(java.security.Key, byte[], byte[], byte[])}.
 	 */
 	@Test
 	public final void testPut() {
@@ -264,7 +264,7 @@ public class ServerImplTest {
 
 	/**
 	 * Test method for
-	 * {@link Server.ServerImpl#get(java.security.Key, byte[], byte[])}.
+	 * {@link Server.Manager#get(java.security.Key, byte[], byte[])}.
 	 */
 	@Test
 	public final void testGet() {
@@ -339,8 +339,8 @@ public class ServerImplTest {
 	}
 
 	/**
-	 * Test method for {@link Server.ServerImpl#writeUsersFiles(SecretKey)}.
-	 * Test method for {@link Server.ServerImpl#readUsersFiles(SecretKey)}.
+	 * Test method for {@link Server.Manager#writeUsersFiles(SecretKey)}.
+	 * Test method for {@link Server.Manager#readUsersFiles(SecretKey)}.
 	 * 
 	 * @throws NoSuchAlgorithmException
 	 * @throws IOException
@@ -366,7 +366,7 @@ public class ServerImplTest {
 
 		assertEquals(s.get(k2, DOMAIN2, USER2), PASS2);
 		s.writeUsersFiles(aesKey);
-		File f = new File(ServerImpl.USERS_FILE);
+		File f = new File(Manager.USERS_FILE);
 		assert (f.exists());
 
 		s.readUsersFile(aesKey);
@@ -389,7 +389,7 @@ public class ServerImplTest {
 	}
 
 //	 /**
-//	 * Test method for {@link Server.ServerImpl#storeSecretKey(SecretKey)}.
+//	 * Test method for {@link Server.Manager#storeSecretKey(SecretKey)}.
 //	 * @throws IOException 
 //	 * @throws FileNotFoundException 
 //	 * @throws CertificateException 
