@@ -1,6 +1,10 @@
 package Crypto;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.Signature;
@@ -36,8 +40,7 @@ public class CryptoFunctions {
 	    return new String(original).trim();
 	}
 
-	public static String encrypt_data(String data)
-	        throws Exception {
+	public static String encrypt_data(String data) throws Exception {
 	    String key = "bad8deadcafef00d";
 	    SecretKeySpec skeySpec = new SecretKeySpec(key.getBytes(), "AES");
 	    Cipher cipher = Cipher.getInstance("AES");
@@ -68,4 +71,46 @@ public class CryptoFunctions {
 		return dsaForVerify.verify(signature); 
 		//System.out.println("Signature verifies: " + verifies); 
 	}
+	
+	private static byte[] hash_message(String message) throws NoSuchAlgorithmException{
+		MessageDigest digest = MessageDigest.getInstance("SHA-1");
+		byte[] messageBytes = message.getBytes();
+		digest.update(messageBytes);
+		byte[] hash = digest.digest();
+		return Base64.getEncoder().encode(hash);
+	}
+	
+	//may need to convert hex to string in hash_message
+	private static String convertByteArrayToHexString(byte[] arrayBytes){
+		StringBuffer stringBuffer = new StringBuffer();
+		for(int i = 0; i < arrayBytes.length; i++)
+			stringBuffer.append(Integer.toString((arrayBytes[i] & 0xff) + 0x100, 16).substring(1));
+		return stringBuffer.toString();
+	}
+	
+	//getter for hash_message
+	public static byte[] getHashMessage(String message) throws NoSuchAlgorithmException{
+		return hash_message(message);
+	}
+	
+	//client should calculate the checksum of file it is sending,
+	//send the checksum value with the request as param
+	//server side: checksum should be compared against the checksum sent by the client
+	//if the two match file is good
+	
+	//integrity check for a file
+	public static byte[] checkFileIntegrity(String filename) throws NoSuchAlgorithmException, IOException{
+		MessageDigest digest = MessageDigest.getInstance("SHA-1");
+		FileInputStream file = new FileInputStream(filename);
+		byte[] dataBytes = new byte[1024];
+		
+		int toRead = 0;
+		while((toRead = file.read(dataBytes)) != -1){
+			digest.update(dataBytes, 0, toRead);
+		}
+		byte[] hash = digest.digest();
+		return Base64.getEncoder().encode(hash);
+	}
+	
+	
 }
