@@ -4,9 +4,7 @@
 package Server;
 
 import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -14,22 +12,13 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URI;
 import java.net.UnknownHostException;
-import java.rmi.AlreadyBoundException;
-import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
 import java.security.Key;
-import java.security.KeyStore;
 import java.security.KeyStore.PasswordProtection;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.util.Base64;
 import java.util.Enumeration;
-import java.util.Hashtable;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -45,18 +34,17 @@ import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpServer;
-
-import Exceptions.UserAlreadyRegisteredException;
-import RemoteTypes.IServer;
 
 /**
  * @author paulo
  *
  */
 @Path("/Server")
-public class Server implements IServer {
+public class Server{
 
 	public static final String SERVER_NAME = "Server";
 	private static final PasswordProtection DEFAULT_KS_PASSWORD = new PasswordProtection(
@@ -77,7 +65,7 @@ public class Server implements IServer {
 	 * @throws AlreadyBoundException
 	 */
 	public static void main(String[] args) throws KeyStoreException, NoSuchAlgorithmException, CertificateException,
-			IOException, AlreadyBoundException {
+			IOException {
 		if (args.length == 0) {
 			manager = new Manager(DEFAULT_KS_PASSWORD.getPassword());
 		} else {
@@ -85,16 +73,17 @@ public class Server implements IServer {
 					: new Manager(args[0].toCharArray());
 		}
 
-		InetAddress s = localhostAddress();
-//		String myUrl = String.format("http://%s:%s/", s.getCanonicalHostName(), PORT);
+		//InetAddress s = localhostAddress();
+		// String myUrl = String.format("http://%s:%s/",
+		// s.getCanonicalHostName(), PORT);
 		String myUrl = String.format("http://%s:%s/", "localhost", PORT);
-		System.out.println("my url: "+myUrl);
-		
+		System.out.println("my url: " + myUrl);
+
 		URI baseUri = UriBuilder.fromUri(myUrl).build();
 		ResourceConfig config = new ResourceConfig();
 		config.register(Server.class);
 		HttpServer server = JdkHttpServerFactory.createHttpServer(baseUri, config);
-		
+
 		System.out.println("Server is running");
 	}
 
@@ -104,15 +93,13 @@ public class Server implements IServer {
 	public Response register(String param) {
 		System.out.println("Register called");
 		System.out.println(param);
-		JSONParser parser = new JSONParser();
+		
 		JSONObject json;
 		try {
-			json = (JSONObject) parser.parse(param);
-
+			json = getJason(param);
 			String pubKey = (String) json.get("pubKey");
-			ByteArrayInputStream in = new ByteArrayInputStream(Base64.getDecoder().decode((pubKey.getBytes())));
-			ObjectInputStream is = new ObjectInputStream(in);
-			Key k= ((Key) is.readObject());
+			Key k = ((Key)desSerialize(pubKey));
+			
 			System.out.print("pubkey " + Base64.getEncoder().encodeToString(k.getEncoded()));
 			manager.register(k);
 
@@ -124,23 +111,75 @@ public class Server implements IServer {
 
 	}
 
-	@Override
-	public void register(Key publicKey) throws RemoteException {
-		// TODO Auto-generated method stub
-		manager.register(publicKey);
+	@PUT
+	@Path("/Put")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public Response put(String param) {
+		System.out.println("Put called");
+		System.out.println("Json "+ param);
+	
+		JSONObject json;
+		try {
+			json = getJason(param);
+			String username = (String) json.get("username");
+			String domain= (String) json.get("domain");
+			String password= (String) json.get("password");
+			String pubKey = (String) json.get("pubKey");
+			Key publicKey = ((Key)desSerialize(pubKey));
+			manager.put(publicKey, this.decodeString(username), this.decodeString(domain), this.decodeString(password));
+			
+			System.out.print("pubkey " + Base64.getEncoder().encodeToString(publicKey.getEncoded()));
+			return Response.status(200).build();
+		} catch (Exception e1) {
+			e1.printStackTrace();
+			return Response.status(400).build();
+		}
 
 	}
 
-	@Override
-	public void put(Key publicKey, byte[] domain, byte[] username, byte[] password) throws RemoteException {
-		// TODO Auto-generated method stub
-		manager.put(publicKey, domain, username, password);
+	@GET
+	@Path("/Get/{json}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response get(@PathParam("json") String param) {
+		System.out.println("GEt called");
+		System.out.println("Jason "+ param);
+		JSONObject json;
+		try {
+			json = getJason(param);
+			String username = (String) json.get("username");
+			String domain= (String) json.get("domain");
+			
+			String pubKey = (String) json.get("pubKey");
+			Key publicKey = ((Key)desSerialize(pubKey));
+			System.out.print("pubkey " + Base64.getEncoder().encodeToString(publicKey.getEncoded()));
+			byte[] password=manager.get(publicKey, decodeString(domain), decodeString(username));
+			String pw = encodeString(password);
+			ObjectMapper mapper = new ObjectMapper();
+			String pwJson = mapper.writeValueAsString(pw);
+			return Response.ok(pwJson).build();
+		} catch (Exception e1) {
+			e1.printStackTrace();
+			return Response.status(400).build();
+		}
+
 	}
 
-	@Override
-	public byte[] get(Key publicKey, byte[] domain, byte[] username) throws RemoteException {
-		// TODO Auto-generated method stub
-		return manager.get(publicKey, domain, username);
+	private JSONObject getJason(String param) throws ParseException {
+		JSONParser parser = new JSONParser();
+		return (JSONObject) parser.parse(param);
+	}
+	
+	private Object desSerialize(String obj) throws ClassNotFoundException, IOException{
+		ByteArrayInputStream in = new ByteArrayInputStream(Base64.getDecoder().decode((obj.getBytes())));
+		ObjectInputStream is = new ObjectInputStream(in);
+		return is.readObject();
+	}
+	
+	private byte[] decodeString(String string){
+		return Base64.getDecoder().decode(string);
+	}
+	private String encodeString(byte[] array){
+		return Base64.getEncoder().encodeToString(array);
 	}
 
 	private static InetAddress localhostAddress() {

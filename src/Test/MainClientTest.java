@@ -1,7 +1,7 @@
 /**
  * 
  */
-package Client;
+package Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -32,7 +32,7 @@ import org.json.simple.JSONObject;
  * @author paulo
  *
  */
-public class ClientI {
+public class MainClientTest {
 
 	private static WebTarget target;
 	private static Client client;
