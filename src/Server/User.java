@@ -51,7 +51,7 @@ public class User implements Serializable{
 		if (aux==null)
 			throw new UsernameNotFoundException();
 		
-		return userNames.get(u).getData();
+		return aux.getData();
 
 	}
 	

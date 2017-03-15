@@ -2,6 +2,10 @@
  * 
  */
 package Client;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
@@ -18,52 +22,58 @@ import Exceptions.ConectionFailedException;
  * @author paulo
  *
  */
-public final class  ClientConnections {
-	
+public final class ClientConnections {
+
 	private WebTarget target;
 	private Client client;
 	public static final String SERVER_URL = "http://localhost:9000";
-	
-	public ClientConnections(){
+
+	public ClientConnections() {
 		ClientConfig config = new ClientConfig();
 		client = ClientBuilder.newClient(config);
 		target = client.target(UriBuilder.fromUri(SERVER_URL).build());
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	public void register(String pubKey) throws ConectionFailedException {
 		JSONObject j = new JSONObject();
 		j.put("pubKey", pubKey);
 		WebTarget target = this.target.path(String.format("/Server/Register"));
-		Response response = target.request().accept(MediaType.APPLICATION_JSON).post(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
-		
-		if(response.getStatus()!=200){
+		Response response = target.request().accept(MediaType.APPLICATION_JSON)
+				.post(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
+
+		if (response.getStatus() != 200) {
 			throw new ConectionFailedException();
 		}
 	}
-	
+
 	@SuppressWarnings("unchecked")
-	public void put(String pubKey,String domain,String username,String password){
+	public void put(String pubKey, String domain, String username, String password) {
 		JSONObject j = new JSONObject();
 		j.put("pubKey", pubKey);
 		j.put("domain", domain);
 		j.put("username", username);
 		j.put("password", password);
 		WebTarget target = this.target.path(String.format("/Server/Put"));
-		Response response = target.request().accept(MediaType.APPLICATION_JSON).put(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
-		
-		if(response.getStatus()!=200){
+		Response response = target.request().accept(MediaType.APPLICATION_JSON)
+				.put(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
+
+		if (response.getStatus() != 200) {
 			throw new ConectionFailedException();
 		}
 	}
+
 	@SuppressWarnings("unchecked")
-	public String get(String pubKey,String domain,String username){
+	public String get(String pubKey, String domain, String username) throws UnsupportedEncodingException {
+		System.out.println("domain no client " + domain);
 		JSONObject j = new JSONObject();
 		j.put("pubKey", pubKey);
 		j.put("domain", domain);
 		j.put("username", username);
-		
-		WebTarget target = this.target.path(String.format("/Server/Get/%s/",j.toJSONString()));
+		String json = URLEncoder.encode(j.toJSONString(), "UTF-8");
+		WebTarget target = this.target.path(String.format("/Server/Get/%s/",json));
+//		WebTarget target = this.target.path(String.format("/Server/Get/")).queryParam("list", pubKey)
+//				.queryParam("list", domain).queryParam("list", username);
 		String response = target.request().accept(MediaType.APPLICATION_JSON).get(String.class);
 		return response;
 	}
