@@ -45,6 +45,8 @@ import org.json.simple.parser.ParseException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpServer;
 
+import Exceptions.UserAlreadyRegisteredException;
+
 /**
  * @author paulo
  *
@@ -53,9 +55,12 @@ import com.sun.net.httpserver.HttpServer;
 public class Server {
 
 	public static final String SERVER_NAME = "Server";
+	public static final int PORT = 9000;
+	public static final int OK = 200;
+	public static final int BAD_REQUEST = 400;
+
 	private static final PasswordProtection DEFAULT_KS_PASSWORD = new PasswordProtection(
 			"a26tUfrGg4e4LHX".toCharArray());
-	private static final int PORT = 9000;
 
 	private static Manager manager;
 
@@ -108,8 +113,10 @@ public class Server {
 			manager.register(k);
 
 			return Response.status(200).build();
+		} catch (UserAlreadyRegisteredException u) {
+			return Response.status(400).build();
 		} catch (Exception e1) {
-			e1.printStackTrace();
+
 			return Response.status(400).build();
 		}
 
@@ -127,18 +134,18 @@ public class Server {
 			json = getJason(param);
 			String username = (String) json.get("username");
 			String domain = (String) json.get("domain");
-			System.out.println("domain no PUT "+domain);
-			
+			System.out.println("domain no PUT " + domain);
+
 			String password = (String) json.get("password");
-			System.out.println("password no PUT "+password);
+			System.out.println("password no PUT " + password);
 			String pubKey = (String) json.get("pubKey");
 			Key publicKey = ((Key) desSerialize(pubKey));
-			manager.put(publicKey, domain.getBytes(),username.getBytes(), password.getBytes());
+			manager.put(publicKey, domain.getBytes(), username.getBytes(), password.getBytes());
 
 			System.out.println("pubkey " + Base64.getEncoder().encodeToString(publicKey.getEncoded()));
 			return Response.status(200).build();
 		} catch (Exception e1) {
-			e1.printStackTrace();
+
 			return Response.status(400).build();
 		}
 
@@ -148,29 +155,28 @@ public class Server {
 	@Path("/Get/{json}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response get(@PathParam("json") String param) {
-		
+
 		System.out.println("Get called");
 		System.out.println("Json " + param);
 
 		JSONObject json;
 		try {
 			json = getJason(param);
-		
+
 			String username = (String) json.get("username");
 			String domain = (String) json.get("domain");
-			System.out.println("username "+ username);
-			System.out.println("domain no GET "+domain);
+			System.out.println("username " + username);
+			System.out.println("domain no GET " + domain);
 			String pubKey = (String) json.get("pubKey");
 			Key publicKey = ((Key) desSerialize(pubKey));
-			
+
 			System.out.println("pubkey " + Base64.getEncoder().encodeToString(publicKey.getEncoded()));
 			byte[] password = manager.get(publicKey, domain.getBytes(), username.getBytes());
-		String pw = new String(password);
-		
-			
+			String pw = new String(password);
+
 			return Response.ok(pw).build();
 		} catch (Exception e1) {
-			e1.printStackTrace();
+
 			return Response.status(400).build();
 		}
 
@@ -185,14 +191,6 @@ public class Server {
 		ByteArrayInputStream in = new ByteArrayInputStream(Base64.getDecoder().decode((obj.getBytes())));
 		ObjectInputStream is = new ObjectInputStream(in);
 		return is.readObject();
-	}
-
-	private byte[] decodeString(String string) {
-		return Base64.getDecoder().decode(string);
-	}
-
-	private String encodeString(byte[] array) {
-		return Base64.getEncoder().encodeToString(array);
 	}
 
 	private static InetAddress localhostAddress() {
@@ -216,4 +214,9 @@ public class Server {
 			return null;
 		}
 	}
+
+	public static void stop() {
+		System.exit(1);
+	}
+
 }

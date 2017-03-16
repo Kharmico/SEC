@@ -52,6 +52,7 @@ public class Manager  {
 
 	public static final String PRIVATE_KEY_ALIAS = "privateServerKey";
 	private static final String SECRET_KEY_ALIAS = "secretServerKey";
+	private static final String SERVER_PAIR_ALIAS="ServerPair";
 
 	private static final String KS_PAHT = System.getProperty("user.dir") + "\\Resources\\KeyStore.jks";
 	public static final String USERS_FILE = System.getProperty("user.dir") + "\\Resources\\Users";
