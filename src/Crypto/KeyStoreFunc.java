@@ -13,7 +13,7 @@ public class KeyStoreFunc {
 	
 	public void loadKeyStore(String file)
 			throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
-		ks = KeyStore.getInstance(KeyStore.getDefaultType());
+		ks = KeyStore.getInstance("JCEKS");
 
 		//
 		java.io.FileInputStream fis = null;
