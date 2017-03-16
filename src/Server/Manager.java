@@ -39,6 +39,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.omg.CORBA.Context;
 
+import Crypto.KeyStoreFunc;
 import Exceptions.DomainNotFoundException;
 import Exceptions.UserAlreadyRegisteredException;
 import Exceptions.UserNotRegisteredException;
@@ -53,32 +54,36 @@ public class Manager  {
 	public static final String PRIVATE_KEY_ALIAS = "privateServerKey";
 	private static final String SECRET_KEY_ALIAS = "secretServerKey";
 
-	private static final String KS_PAHT = System.getProperty("user.dir") + "\\Resources\\KeyStore.jks";
+	private static final String KS_PATH = System.getProperty("user.dir") + "\\Resources\\KeyStore.jks";
 	public static final String USERS_FILE = System.getProperty("user.dir") + "\\Resources\\Users";
 	
 
 	private static final String CIPHER_ALG = "AES/ECB/PKCS5Padding";
-
-	private KeyStore ks;
+	
+	//private KeyStore ks;
+	private KeyStoreFunc keyStore;
 	private Map<ByteArrayWrapper, User> users;
-	private PasswordProtection ksPassword;
+	private PasswordProtection ksPassword = keyStore.getPasswordKs();
+	//private PasswordProtection ksPassword;
 
 	private void serverImpl(char[] password) {
 		this.users = new Hashtable<ByteArrayWrapper, User>();
+		
 		this.ksPassword = new PasswordProtection(password);
 	}
 
 	public Manager(char[] ksPassword)
 			throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
 		this.serverImpl(ksPassword);
-		loadKeyStore(KS_PAHT);
+		//loadKeyStore(KS_PAHT);
+		keyStore.loadKeyStore(KS_PATH);
 	}
 
 	public Manager(String file, char[] ksPassword)
 			throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
 		this.serverImpl(ksPassword);
-		loadKeyStore(file);
-
+		//loadKeyStore(file);
+		keyStore.loadKeyStore(file);
 	}
 
 	
@@ -109,8 +114,10 @@ public class Manager  {
 	public int usersSize() {
 		return this.users.size();
 	}
-
-	public void safeStore(char[] ksPassword)
+	
+	
+	//OLD STUFF, DIDN'T DELETE JUST IN CASE
+	/*public void safeStore(char[] ksPassword)
 			throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
 		// store away the keystore
 		java.io.FileOutputStream fos = null;
@@ -123,9 +130,9 @@ public class Manager  {
 			}
 		}
 
-	}
+	}*/
 
-	private void loadKeyStore(String file)
+	/*private void loadKeyStore(String file)
 			throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
 		ks = KeyStore.getInstance(KeyStore.getDefaultType());
 
@@ -139,17 +146,21 @@ public class Manager  {
 				fis.close();
 			}
 		}
-	}
-
+	}*/
+	//---------------OLD FINITO-------------------------/
+	
+	
 	private Key getPrivateKey() throws NoSuchAlgorithmException, UnrecoverableEntryException, KeyStoreException {
 		// get my private key
-		KeyStore.PrivateKeyEntry pkEntry = (KeyStore.PrivateKeyEntry) ks.getEntry(PRIVATE_KEY_ALIAS, this.ksPassword);
+		//KeyStore.PrivateKeyEntry pkEntry = (KeyStore.PrivateKeyEntry) ks.getEntry(PRIVATE_KEY_ALIAS, this.ksPassword);
+		KeyStore.PrivateKeyEntry pkEntry = (KeyStore.PrivateKeyEntry) keyStore.getKeyStore().getEntry(PRIVATE_KEY_ALIAS, this.ksPassword);
 		PrivateKey myPrivateKey = pkEntry.getPrivateKey();
 		return myPrivateKey;
 	}
 
 	public boolean hasKs() {
-		return this.ks != null;
+		//return this.ks != null;
+		return this.keyStore != null;
 	}
 
 	public void writeUsersFiles(SecretKey key)
