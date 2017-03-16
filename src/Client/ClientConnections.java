@@ -6,6 +6,7 @@ package Client;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
@@ -16,6 +17,7 @@ import javax.ws.rs.core.UriBuilder;
 
 import org.glassfish.jersey.client.ClientConfig;
 import org.json.simple.JSONObject;
+
 import Exceptions.ConectionFailedException;
 
 /**
@@ -24,9 +26,12 @@ import Exceptions.ConectionFailedException;
  */
 public final class ClientConnections {
 
+	public static final String SERVER_URL = "http://localhost:9000";
+	public static final int OK = 200;
+	public static final int BAD_REQUEST = 400;
+
 	private WebTarget target;
 	private Client client;
-	public static final String SERVER_URL = "http://localhost:9000";
 
 	public ClientConnections() {
 		ClientConfig config = new ClientConfig();
@@ -42,9 +47,7 @@ public final class ClientConnections {
 		Response response = target.request().accept(MediaType.APPLICATION_JSON)
 				.post(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
 
-		if (response.getStatus() != 200) {
-			throw new ConectionFailedException();
-		}
+		checkStatus(response);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -57,10 +60,7 @@ public final class ClientConnections {
 		WebTarget target = this.target.path(String.format("/Server/Put"));
 		Response response = target.request().accept(MediaType.APPLICATION_JSON)
 				.put(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
-
-		if (response.getStatus() != 200) {
-			throw new ConectionFailedException();
-		}
+		checkStatus(response);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -71,10 +71,16 @@ public final class ClientConnections {
 		j.put("domain", domain);
 		j.put("username", username);
 		String json = URLEncoder.encode(j.toJSONString(), "UTF-8");
-		WebTarget target = this.target.path(String.format("/Server/Get/%s/",json));
-//		WebTarget target = this.target.path(String.format("/Server/Get/")).queryParam("list", pubKey)
-//				.queryParam("list", domain).queryParam("list", username);
+		WebTarget target = this.target.path(String.format("/Server/Get/%s/", json));
 		String response = target.request().accept(MediaType.APPLICATION_JSON).get(String.class);
 		return response;
 	}
+
+	private void checkStatus(Response res) {
+		if (res.getStatus() == BAD_REQUEST) 
+			throw new BadRequestException();
+		if(res.getStatus()!=OK)
+			throw new ConectionFailedException();
+	}
+
 }
