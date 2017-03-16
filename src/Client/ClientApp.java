@@ -52,12 +52,8 @@ public class ClientApp {
 					if(tokens.length == 3) {
 						keystore = tokens[1];
 						KeyStore ks = null;
-						try {
-							kstorefunc.loadKeyStore(KS_PATH);
-							ks = kstorefunc.getKeyStore();
-						} catch (FileNotFoundException e) {
-							ks.load(null, null);
-						}
+						kstorefunc.loadKeyStore(KS_PATH);
+						ks = kstorefunc.getKeyStore();
 						ksPassword = tokens[2].toCharArray();
 						cman.init(ks, ksPassword);
 					}

@@ -10,13 +10,14 @@ public class ClientManager implements PasswordManager {
 	private String stuff = "";
 	private KeyStore _ks = null;
 	char[] _ksPassword = null;
+	ClientConnections clientconn = null;
 	
 	
 	@Override
 	public void init(KeyStore ks, char[] ksPassword) throws NoSuchAlgorithmException {
 		this._ks = ks;
 		this._ksPassword = ksPassword;
-		
+		clientconn = new ClientConnections();
 		
 		
 		/*Specification: initializes the library before its first use. This method should
@@ -32,6 +33,8 @@ public class ClientManager implements PasswordManager {
 	public void register_user() throws RemoteException {
 		
 		
+		// Get the public key to send!!!
+		clientconn.register(pubKey);
 		
 		/*Specification: registers the user on the server, initializing the required data
 		structures to securely store the passwords.*/
@@ -42,6 +45,8 @@ public class ClientManager implements PasswordManager {
 	public void save_password(byte[] domain, byte[] username, byte[] password) throws RemoteException {
 		
 		
+		// Get the public key to send!!!
+		clientconn.put(pubKey, domain, username, password);
 		
 		/*Specification: stores the triple (domain, username, password) on the server.
 		This corresponds to an insertion if the (domain, username) pair is not already
@@ -54,6 +59,8 @@ public class ClientManager implements PasswordManager {
 	public byte[] retrieve_password(byte[] domain, byte[] username) throws RemoteException {
 		
 		
+		// Get the public key to send!!!
+		clientconn.get(pubKey, domain, username);
 		
 		/*Specification: retrieves the password associated with the given (domain,
 		username) pair. The behavior of what should happen if the (domain,

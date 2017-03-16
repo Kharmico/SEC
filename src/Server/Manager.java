@@ -51,7 +51,6 @@ import Exceptions.UsernameNotFoundException;
  */
 public class Manager  {
 
-	public static final String PRIVATE_KEY_ALIAS = "privateServerKey";
 	private static final String SECRET_KEY_ALIAS = "secretServerKey";
 
 	private static final String KS_PATH = System.getProperty("user.dir") + "\\Resources\\KeyStore.jks";
@@ -63,27 +62,24 @@ public class Manager  {
 	//private KeyStore ks;
 	private KeyStoreFunc keyStore;
 	private Map<ByteArrayWrapper, User> users;
-	private PasswordProtection ksPassword = keyStore.getPasswordKs();
 	//private PasswordProtection ksPassword;
 
 	private void serverImpl(char[] password) {
 		this.users = new Hashtable<ByteArrayWrapper, User>();
-		
-		this.ksPassword = new PasswordProtection(password);
 	}
 
 	public Manager(char[] ksPassword)
 			throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
 		this.serverImpl(ksPassword);
 		//loadKeyStore(KS_PAHT);
-		keyStore.loadKeyStore(KS_PATH);
+		keyStore.loadKeyStore(KS_PATH, ksPassword);
 	}
 
 	public Manager(String file, char[] ksPassword)
 			throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
 		this.serverImpl(ksPassword);
 		//loadKeyStore(file);
-		keyStore.loadKeyStore(file);
+		keyStore.loadKeyStore(file, ksPassword);
 	}
 
 	
@@ -149,14 +145,7 @@ public class Manager  {
 	}*/
 	//---------------OLD FINITO-------------------------/
 	
-	
-	private Key getPrivateKey() throws NoSuchAlgorithmException, UnrecoverableEntryException, KeyStoreException {
-		// get my private key
-		//KeyStore.PrivateKeyEntry pkEntry = (KeyStore.PrivateKeyEntry) ks.getEntry(PRIVATE_KEY_ALIAS, this.ksPassword);
-		KeyStore.PrivateKeyEntry pkEntry = (KeyStore.PrivateKeyEntry) keyStore.getKeyStore().getEntry(PRIVATE_KEY_ALIAS, this.ksPassword);
-		PrivateKey myPrivateKey = pkEntry.getPrivateKey();
-		return myPrivateKey;
-	}
+
 
 	public boolean hasKs() {
 		//return this.ks != null;
