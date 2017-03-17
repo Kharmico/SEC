@@ -5,11 +5,9 @@ package Server;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
@@ -18,13 +16,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.Key;
-import java.security.KeyStore;
-import java.security.KeyStore.PasswordProtection;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.UnrecoverableEntryException;
-import java.security.cert.CertificateException;
 import java.util.Base64;
 import java.util.Hashtable;
 import java.util.Map;
@@ -32,13 +25,8 @@ import java.util.Map;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-
-import org.omg.CORBA.Context;
-
 import Crypto.KeyStoreFunc;
 import Exceptions.DomainNotFoundException;
 import Exceptions.UserAlreadyRegisteredException;
@@ -61,26 +49,26 @@ public class Manager  {
 	private static final String CIPHER_ALG = "AES/ECB/PKCS5Padding";
 	
 	//private KeyStore ks;
-	private KeyStoreFunc keyStore;
+//	private KeyStoreFunc keyStore;
 	private Map<ByteArrayWrapper, User> users;
-	//private PasswordProtection ksPassword;
+	
 
 	private void serverImpl(char[] password) {
 		this.users = new Hashtable<ByteArrayWrapper, User>();
 	}
 
 	public Manager(char[] ksPassword)
-			throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
+			throws Exception {
 		this.serverImpl(ksPassword);
 		//loadKeyStore(KS_PAHT);
-		keyStore.loadKeyStore(KS_PATH, ksPassword);
+		KeyStoreFunc.loadKeyStore(KS_PATH, ksPassword);
 	}
 
 	public Manager(String file, char[] ksPassword)
-			throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
+			throws Exception {
 		this.serverImpl(ksPassword);
 		//loadKeyStore(file);
-		keyStore.loadKeyStore(file, ksPassword);
+		KeyStoreFunc.loadKeyStore(file, ksPassword);
 	}
 
 	
@@ -148,10 +136,10 @@ public class Manager  {
 	
 
 
-	public boolean hasKs() {
-		//return this.ks != null;
-		return this.keyStore != null;
-	}
+//	public boolean hasKs() {
+//		//return this.ks != null;
+//		return this.keyStore != null;
+//	}
 
 	public void writeUsersFiles(SecretKey key)
 			throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException,

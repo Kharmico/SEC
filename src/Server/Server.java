@@ -3,27 +3,18 @@
  */
 package Server;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URI;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.security.Key;
 import java.security.KeyStore.PasswordProtection;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
+import java.security.PublicKey;
 import java.util.Base64;
 import java.util.Enumeration;
-import java.util.List;
-
-import javax.crypto.KeyGenerator;
+import javax.crypto.spec.SecretKeySpec;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -31,7 +22,6 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
@@ -42,9 +32,9 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpServer;
 
+import Crypto.CryptoFunctions;
 import Exceptions.UserAlreadyRegisteredException;
 
 /**
@@ -58,7 +48,7 @@ public class Server {
 	public static final int PORT = 9000;
 	public static final int OK = 200;
 	public static final int BAD_REQUEST = 400;
-
+	private static final byte[] MASTER_KEY = Base64.getDecoder().decode("/SJpodDfXUbZB4u119dKQg==".getBytes());
 	private static final PasswordProtection DEFAULT_KS_PASSWORD = new PasswordProtection(
 			"a26tUfrGg4e4LHX".toCharArray());
 
@@ -69,14 +59,10 @@ public class Server {
 
 	/**
 	 * @param args
-	 * @throws IOException
-	 * @throws CertificateException
-	 * @throws NoSuchAlgorithmException
-	 * @throws KeyStoreException
+	 * @throws Exception
 	 * @throws AlreadyBoundException
 	 */
-	public static void main(String[] args)
-			throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
+	public static void main(String[] args) throws Exception {
 		if (args.length == 0) {
 			manager = new Manager(DEFAULT_KS_PASSWORD.getPassword());
 		} else {
@@ -108,10 +94,15 @@ public class Server {
 		JSONObject json;
 		try {
 			json = getJason(param);
-			String pubKey = (String) json.get("pubKey");
-			Key k = (Key) desSerialize(pubKey);
-			manager.register(k);
 
+			String pubKey = (String) json.get("pubKey");
+			String signature_pubKey = (String) json.get("pubKeySignature");
+			Key k = (Key) CryptoFunctions.desSerialize(pubKey);
+			if (!CryptoFunctions.verifySignature(pubKey.getBytes(), signature_pubKey.getBytes(), (PublicKey) k))
+				Response.status(400).build();
+			manager.register(k);
+			
+			System.out.println("Register ok");
 			return Response.status(200).build();
 		} catch (UserAlreadyRegisteredException u) {
 			return Response.status(400).build();
@@ -131,18 +122,36 @@ public class Server {
 
 		JSONObject json;
 		try {
+			Key superKey = new SecretKeySpec(MASTER_KEY, "AES");
 			json = getJason(param);
-			String username = (String) json.get("username");
-			String domain = (String) json.get("domain");
-			System.out.println("domain no PUT " + domain);
-
-			String password = (String) json.get("password");
-			System.out.println("password no PUT " + password);
+			
 			String pubKey = (String) json.get("pubKey");
-			Key publicKey = ((Key) desSerialize(pubKey));
-			manager.put(publicKey, domain.getBytes(), username.getBytes(), password.getBytes());
+			String signature_pubKey = (String) json.get("pubKeySignature");
+			Key k = (Key) CryptoFunctions.desSerialize(pubKey);
+			if (!CryptoFunctions.verifySignature(pubKey.getBytes(), signature_pubKey.getBytes(), (PublicKey) k))
+				Response.status(400).build();
+			
 
-			System.out.println("pubkey " + Base64.getEncoder().encodeToString(publicKey.getEncoded()));
+			byte[] username = CryptoFunctions.decrypt_data_symmetric((String) json.get("username"), superKey);
+			byte[] signature_username = CryptoFunctions.decrypt_data_symmetric((String) json.get("usernameSignature"), superKey);
+			
+			if (!CryptoFunctions.verifySignature(username, signature_username, (PublicKey) k))
+				Response.status(400).build();
+			
+
+			byte[] domain = CryptoFunctions.decrypt_data_symmetric((String) json.get("domain"),superKey);
+			byte[] signature_domain = CryptoFunctions.decrypt_data_symmetric((String) json.get("domainSignature"),superKey);
+			if (!CryptoFunctions.verifySignature(domain, signature_domain, (PublicKey) k))
+				Response.status(400).build();
+
+			byte[] password = CryptoFunctions.decrypt_data_symmetric((String) json.get("password"),superKey);
+			byte[] signature_password = CryptoFunctions.decrypt_data_symmetric((String) json.get("passwordSignature"),superKey);
+			if (!CryptoFunctions.verifySignature(password, signature_password, (PublicKey) k))
+				Response.status(400).build();
+
+			manager.put(k, domain, username, password);
+
+//			System.out.println("pubkey " + Base64.getEncoder().encodeToString(k.getEncoded()));
 			return Response.status(200).build();
 		} catch (Exception e1) {
 
@@ -161,19 +170,32 @@ public class Server {
 
 		JSONObject json;
 		try {
+			Key superKey = new SecretKeySpec(MASTER_KEY, "AES");
 			json = getJason(param);
-
-			String username = (String) json.get("username");
-			String domain = (String) json.get("domain");
-			System.out.println("username " + username);
-			System.out.println("domain no GET " + domain);
+			
 			String pubKey = (String) json.get("pubKey");
-			Key publicKey = ((Key) desSerialize(pubKey));
+			String signature_pubKey = (String) json.get("pubKeySignature");
+			Key k = (Key) CryptoFunctions.desSerialize(pubKey);
+			if (!CryptoFunctions.verifySignature(pubKey.getBytes(), signature_pubKey.getBytes(), (PublicKey) k))
+				Response.status(400).build();
+			
 
-			System.out.println("pubkey " + Base64.getEncoder().encodeToString(publicKey.getEncoded()));
-			byte[] password = manager.get(publicKey, domain.getBytes(), username.getBytes());
-			String pw = new String(password);
+			byte[] username = CryptoFunctions.decrypt_data_symmetric((String) json.get("username"), superKey);
+			byte[] signature_username = CryptoFunctions.decrypt_data_symmetric((String) json.get("usernameSignature"), superKey);
+			
+			if (!CryptoFunctions.verifySignature(username, signature_username, (PublicKey) k))
+				Response.status(400).build();
+			
 
+			byte[] domain = CryptoFunctions.decrypt_data_symmetric((String) json.get("domain"),superKey);
+			byte[] signature_domain = CryptoFunctions.decrypt_data_symmetric((String) json.get("domainSignature"),superKey);
+			if (!CryptoFunctions.verifySignature(domain, signature_domain, (PublicKey) k))
+				Response.status(400).build();
+			
+			byte[] password = manager.get(k, domain, username);
+			
+			String pw=CryptoFunctions.encrypt_data_symmetric(new String(password),superKey);
+			
 			return Response.ok(pw).build();
 		} catch (Exception e1) {
 
@@ -185,12 +207,6 @@ public class Server {
 	private JSONObject getJason(String param) throws ParseException {
 		JSONParser parser = new JSONParser();
 		return (JSONObject) parser.parse(param);
-	}
-
-	private Object desSerialize(String obj) throws ClassNotFoundException, IOException {
-		ByteArrayInputStream in = new ByteArrayInputStream(Base64.getDecoder().decode((obj.getBytes())));
-		ObjectInputStream is = new ObjectInputStream(in);
-		return is.readObject();
 	}
 
 	private static InetAddress localhostAddress() {

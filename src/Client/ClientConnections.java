@@ -40,9 +40,10 @@ public final class ClientConnections {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void register(String pubKey) throws ConectionFailedException {
+	public void register(String pubKey, String signature_pubKey) throws ConectionFailedException {
 		JSONObject j = new JSONObject();
 		j.put("pubKey", pubKey);
+		j.put("pubKeySignature", signature_pubKey);
 		WebTarget target = this.target.path(String.format("/Server/Register"));
 		Response response = target.request().accept(MediaType.APPLICATION_JSON)
 				.post(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
@@ -51,12 +52,17 @@ public final class ClientConnections {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void put(String pubKey, String domain, String username, String password) {
+	public void put(String pubKey, String signature_pubKey, String domain, String signature_domain, String username,
+			String signature_username, String signature_password, String password) {
 		JSONObject j = new JSONObject();
 		j.put("pubKey", pubKey);
+		j.put("pubKeySignature", signature_pubKey);
 		j.put("domain", domain);
+		j.put("domainSignature", signature_domain);
 		j.put("username", username);
+		j.put("usernameSignature", signature_username);
 		j.put("password", password);
+		j.put("passwordSignature", signature_password);
 		WebTarget target = this.target.path(String.format("/Server/Put"));
 		Response response = target.request().accept(MediaType.APPLICATION_JSON)
 				.put(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
@@ -64,12 +70,16 @@ public final class ClientConnections {
 	}
 
 	@SuppressWarnings("unchecked")
-	public String get(String pubKey, String domain, String username) throws UnsupportedEncodingException {
+	public String get(String pubKey, String signature_pubKey, String domain, String signature_domain, String username,
+			String signature_username) throws UnsupportedEncodingException {
 		System.out.println("domain no client " + domain);
 		JSONObject j = new JSONObject();
 		j.put("pubKey", pubKey);
+		j.put("pubKeySignature", signature_pubKey);
 		j.put("domain", domain);
+		j.put("domainSignature", signature_domain);
 		j.put("username", username);
+		j.put("usernameSignature", signature_username);
 		String json = URLEncoder.encode(j.toJSONString(), "UTF-8");
 		WebTarget target = this.target.path(String.format("/Server/Get/%s/", json));
 		String response = target.request().accept(MediaType.APPLICATION_JSON).get(String.class);
@@ -77,9 +87,9 @@ public final class ClientConnections {
 	}
 
 	private void checkStatus(Response res) {
-		if (res.getStatus() == BAD_REQUEST) 
+		if (res.getStatus() == BAD_REQUEST)
 			throw new BadRequestException();
-		if(res.getStatus()!=OK)
+		if (res.getStatus() != OK)
 			throw new ConectionFailedException();
 	}
 

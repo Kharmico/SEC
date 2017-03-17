@@ -16,22 +16,19 @@ import Crypto.KeyStoreFunc;
  */
 public class ClientApp {
 
-	private static final String KS_PATH = System.getProperty("user.dir") + "\\Resources\\KeyStoreBob.jceks";
+	private static final String KS_PATH = System.getProperty("user.dir") + "\\Resources\\";
 	
 	/**
 	 * @param args
-	 * @throws NoSuchAlgorithmException 
-	 * @throws KeyStoreException 
-	 * @throws IOException 
-	 * @throws CertificateException 
+	 * @throws Exception 
 	 */
 	/* Application to communicate with the ClientManager in order to apply the specifications of
 	 * execution of the client library for the project.
 	 */
-	public static void main(String[] args) throws NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException {
+	public static void main(String[] args) throws Exception {
 		Scanner readIns = new Scanner(System.in);
 		ClientManager cman = new ClientManager();
-		KeyStoreFunc kstorefunc = new KeyStoreFunc();
+//		KeyStoreFunc kstorefunc = new KeyStoreFunc();
 
 		// Variables to use for passing arguments for ClientManager. Must initialize them (give them a value)
 		String keystore = new String();
@@ -48,24 +45,26 @@ public class ClientApp {
 				case "help":
 					System.out.println("The instructions are as follows:\ninit <KeyStore name> <Password>\nregister_user\n"
 							+ "save_password<domain> <username> <password>\nretrieve_password <domain> <username>\nclose");
+					break;
 				case "init":
 					if(tokens.length == 3) {
 						keystore = tokens[1];
-						KeyStore ks = null;
-						kstorefunc.loadKeyStore(KS_PATH);
-						ks = kstorefunc.getKeyStore();
 						ksPassword = tokens[2].toCharArray();
+						KeyStore ks = null;
+//						kstorefunc.loadKeyStore(KS_PATH,ksPassword);
+//						ks = kstorefunc.getKeyStore();
+						ks=KeyStoreFunc.loadKeyStore(String.format("%s%s%s", KS_PATH,keystore,".jceks"),ksPassword);
 						cman.init(ks, ksPassword);
 					}
 					else System.out.println("You did not insert at least 1 argument for this instruction.\n"
 							+ "The correct usage is init <KeyStore name> <Password>");
-					
+					break;
 				case "register_user":
 					if(tokens.length == 1)
 						cman.register_user();
 					else System.out.println("Wrong usage of the instruction.\n"
 							+ "The correct usage is register_user");
-					
+					break;
 				case "save_password":
 					if(tokens.length == 4) {
 						domain = tokens[1].getBytes();
@@ -75,22 +74,22 @@ public class ClientApp {
 					}
 					else System.out.println("You did not insert at least 1 argument for this instruction.\n"
 							+ "The correct usage is save_password <domain> <username> <password>");
-					
+					break;
 				case "retrieve_password":
 					if(tokens.length == 3){
 						domain = tokens[1].getBytes();
 						username = tokens[2].getBytes();
-						cman.retrieve_password(domain, username);
+						System.out.println(cman.retrieve_password(domain, username));
 					}
 					else System.out.println("You did not insert at least 1 argument for this instruction.\n"
 							+ "The correct usage is retrieve_password <domain> <username>");
-					
+					break;
 				case "close":
 					if(tokens.length == 1)
 						cman.close();
 					else System.out.println("Wrong usage of the instruction.\n"
 							+ "The correct usage is close");
-					
+					break;
 				default:
 					System.out.println("The instruction you've typed does not exist! Please try again.");
 			}		
