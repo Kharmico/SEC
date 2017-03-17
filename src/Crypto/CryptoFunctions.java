@@ -34,49 +34,49 @@ public class CryptoFunctions {
 	static byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     static IvParameterSpec ivspec = new IvParameterSpec(iv);
 	
-	public static byte[] decrypt_data_symmetric(String encData,Key k)
+	public static byte[] decrypt_data_symmetric(byte[] encData,Key k)
 	        throws NoSuchAlgorithmException, NoSuchPaddingException,
 	        InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
 	    
-		byte[] aux = Base64.getDecoder().decode(encData.getBytes());
+		byte[] aux = Base64.getDecoder().decode(encData);
 		
 	    Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-	    cipher.init(Cipher.DECRYPT_MODE, k);
+	    cipher.init(Cipher.DECRYPT_MODE, k,ivspec);
 
 	    //System.out.println("Base64 decoded: "+ Base64.getDecoder().decode(encData.getBytes()).length);
 	    return cipher.doFinal(aux);
 //	    return new String(original).trim();
 	}
 	
-	public static byte[] decrypt_data_asymmetric(String encData,Key k)
+	public static byte[] decrypt_data_asymmetric(byte[] encData,Key k)
 	        throws NoSuchAlgorithmException, NoSuchPaddingException,
 	        InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
 	    
-		byte[] aux = Base64.getDecoder().decode(encData.getBytes());
+		byte[] aux = Base64.getDecoder().decode(encData);
 	    Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 	    cipher.init(Cipher.DECRYPT_MODE, k);
 
-	    System.out.println("Base64 decoded: "+ Base64.getDecoder().decode(encData.getBytes()).length);
+	    System.out.println("Base64 decoded: "+ Base64.getDecoder().decode(encData).length);
 	    return cipher.doFinal(aux);
 //	    return new String(original).trim();
 	}
 	
-	public static String encrypt_data_symmetric(String data,Key k) throws Exception {
+	public static byte[] encrypt_data_symmetric(byte[] data,Key k) throws Exception {
 	    Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-	    cipher.init(Cipher.ENCRYPT_MODE, k);
-	    System.out.println("Base64 encoded: "+ Base64.getEncoder().encode(data.getBytes()).length);
+	    cipher.init(Cipher.ENCRYPT_MODE, k,ivspec);
+	    System.out.println("Base64 encoded: "+ Base64.getEncoder().encode(data).length);
 
-	    byte[] original = Base64.getEncoder().encode(cipher.doFinal(data.getBytes()));
-	    return new String(original);
+	    return Base64.getEncoder().encode(cipher.doFinal(data));
+	    
 	}
 	
-	public static String encrypt_data_asymmetric(String data,Key k) throws Exception {
+	public static byte[] encrypt_data_asymmetric(byte[] data,Key k) throws Exception {
 	    Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 	    cipher.init(Cipher.ENCRYPT_MODE, k);
-	    System.out.println("Base64 encoded: "+ Base64.getEncoder().encode(data.getBytes()).length);
+	    System.out.println("Base64 encoded: "+ Base64.getEncoder().encode(data).length);
 
-	    byte[] original = Base64.getEncoder().encode(cipher.doFinal(data.getBytes()));
-	    return new String(original);
+	   return  Base64.getEncoder().encode(cipher.doFinal(data));
+	   
 	}
 	
 	
@@ -99,10 +99,9 @@ public class CryptoFunctions {
 		//System.out.println("Signature verifies: " + verifies); 
 	}
 	
-	private static byte[] hash_message(String message) throws NoSuchAlgorithmException{
+	private static byte[] hash_message(byte[] message) throws NoSuchAlgorithmException{
 		MessageDigest digest = MessageDigest.getInstance("SHA-1");
-		byte[] messageBytes = message.getBytes();
-		digest.update(messageBytes);
+		digest.update(message);
 		byte[] hash = digest.digest();
 		return Base64.getEncoder().encode(hash);
 	}
@@ -116,7 +115,7 @@ public class CryptoFunctions {
 	}
 	
 	//getter for hash_message
-	public static byte[] getHashMessage(String message) throws NoSuchAlgorithmException{
+	public static byte[] getHashMessage(byte[] message) throws NoSuchAlgorithmException{
 		return hash_message(message);
 	}
 	
