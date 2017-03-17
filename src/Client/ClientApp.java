@@ -79,7 +79,8 @@ public class ClientApp {
 					if(tokens.length == 3){
 						domain = tokens[1].getBytes();
 						username = tokens[2].getBytes();
-						System.out.println(cman.retrieve_password(domain, username));
+						String aux =new String(cman.retrieve_password(domain, username));
+						System.out.println("password get "+aux);
 					}
 					else System.out.println("You did not insert at least 1 argument for this instruction.\n"
 							+ "The correct usage is retrieve_password <domain> <username>");

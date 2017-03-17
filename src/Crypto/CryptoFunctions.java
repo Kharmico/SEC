@@ -41,7 +41,7 @@ public class CryptoFunctions {
 		byte[] aux = Base64.getDecoder().decode(encData.getBytes());
 		
 	    Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-	    cipher.init(Cipher.DECRYPT_MODE, k,ivspec);
+	    cipher.init(Cipher.DECRYPT_MODE, k);
 
 	    //System.out.println("Base64 decoded: "+ Base64.getDecoder().decode(encData.getBytes()).length);
 	    return cipher.doFinal(aux);
@@ -63,7 +63,7 @@ public class CryptoFunctions {
 	
 	public static String encrypt_data_symmetric(String data,Key k) throws Exception {
 	    Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-	    cipher.init(Cipher.ENCRYPT_MODE, k,ivspec);
+	    cipher.init(Cipher.ENCRYPT_MODE, k);
 	    System.out.println("Base64 encoded: "+ Base64.getEncoder().encode(data.getBytes()).length);
 
 	    byte[] original = Base64.getEncoder().encode(cipher.doFinal(data.getBytes()));

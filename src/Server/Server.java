@@ -8,6 +8,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URI;
+import java.net.URLDecoder;
 import java.net.UnknownHostException;
 import java.security.Key;
 import java.security.KeyStore.PasswordProtection;
@@ -50,7 +51,7 @@ public class Server {
 	public static final int PORT = 9000;
 	public static final int OK = 200;
 	public static final int BAD_REQUEST = 400;
-	private static SecretKey MASTER_KEY ;
+	private static SecretKey MASTER_KEY;
 	private static final PasswordProtection DEFAULT_KS_PASSWORD = new PasswordProtection(
 			"a26tUfrGg4e4LHX".toCharArray());
 
@@ -71,8 +72,8 @@ public class Server {
 			manager = args.length > 1 ? new Manager(args[1], args[0].toCharArray())
 					: new Manager(args[0].toCharArray());
 		}
-		 MASTER_KEY = (SecretKey)CryptoFunctions.desSerialize("rO0ABXNyAB9qYXZheC5jcnlwdG8uc3BlYy5TZWNyZXRLZXlTcGVjW0cLZuIwYU0CAAJMAAlhbGdvcml0aG10ABJMamF2YS9sYW5nL1N0cmluZztbAANrZXl0AAJbQnhwdAADQUVTdXIAAltCrPMX+AYIVOACAAB4cAAAABCJzON5PSWnsYxFrxWAd1dA");
-			
+		MASTER_KEY = (SecretKey) CryptoFunctions.desSerialize(
+				"rO0ABXNyAB9qYXZheC5jcnlwdG8uc3BlYy5TZWNyZXRLZXlTcGVjW0cLZuIwYU0CAAJMAAlhbGdvcml0aG10ABJMamF2YS9sYW5nL1N0cmluZztbAANrZXl0AAJbQnhwdAADQUVTdXIAAltCrPMX+AYIVOACAAB4cAAAABCJzON5PSWnsYxFrxWAd1dA");
 
 		// InetAddress s = localhostAddress();
 		// String myUrl = String.format("http://%s:%s/",
@@ -128,15 +129,15 @@ public class Server {
 		JSONObject json;
 		try {
 			json = getJason(param);
-//			Key superKey = new SecretKeySpec(MASTER_KEY, "AES");
+			// Key superKey = new SecretKeySpec(MASTER_KEY, "AES");
 
 			String pubKey = (String) json.get("pubKey");
 			String signature_pubKey = (String) json.get("pubKeySignature");
 			Key k = (Key) CryptoFunctions.desSerialize(pubKey);
-			if (!CryptoFunctions.verifySignature(pubKey.getBytes(), signature_pubKey.getBytes(), (PublicKey) k)){
+			if (!CryptoFunctions.verifySignature(pubKey.getBytes(), signature_pubKey.getBytes(), (PublicKey) k)) {
 				Response.status(400).build();
 			}
-			
+
 			byte[] username = CryptoFunctions.decrypt_data_symmetric((String) json.get("username"), MASTER_KEY);
 			byte[] signature_username = CryptoFunctions.decrypt_data_symmetric((String) json.get("usernameSignature"),
 					MASTER_KEY);
@@ -148,7 +149,7 @@ public class Server {
 			byte[] signature_domain = CryptoFunctions.decrypt_data_symmetric((String) json.get("domainSignature"),
 					MASTER_KEY);
 			if (!CryptoFunctions.verifySignature(domain, signature_domain, (PublicKey) k))
-				return  Response.status(400).build();
+				return Response.status(400).build();
 
 			byte[] password = CryptoFunctions.decrypt_data_symmetric((String) json.get("password"), MASTER_KEY);
 			byte[] signature_password = CryptoFunctions.decrypt_data_symmetric((String) json.get("passwordSignature"),
@@ -178,7 +179,8 @@ public class Server {
 
 		JSONObject json;
 		try {
-//			Key superKey = new SecretKeySpec(MASTER_KEY, "AES");
+//			param=URLDecoder.decode(param, "UTF-8");
+			// Key superKey = new SecretKeySpec(MASTER_KEY, "AES");
 			json = getJason(param);
 
 			String pubKey = (String) json.get("pubKey");
@@ -186,8 +188,8 @@ public class Server {
 			Key k = (Key) CryptoFunctions.desSerialize(pubKey);
 			if (!CryptoFunctions.verifySignature(pubKey.getBytes(), signature_pubKey.getBytes(), (PublicKey) k))
 				return Response.status(400).build();
-			String aux= (String) json.get("username");
-			byte[] username = CryptoFunctions.decrypt_data_symmetric(new String(Base64.getDecoder().decode(aux.getBytes())), MASTER_KEY);
+			String aux = (String) json.get("username");
+			byte[] username = CryptoFunctions.decrypt_data_symmetric((String) json.get("username"), MASTER_KEY);
 			byte[] signature_username = CryptoFunctions.decrypt_data_symmetric((String) json.get("usernameSignature"),
 					MASTER_KEY);
 
