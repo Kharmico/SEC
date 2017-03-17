@@ -18,9 +18,9 @@ public class KeyStoreFunc {
 	// private KeyStore ks;
 	// private PasswordProtection ksPassword;
 	
-	private static final String KEY_ALIAS = "serversec";
+//	private static final String KEY_ALIAS = "serversec";
 
-	public static KeyStore loadKeyStore(String file, char[] ksPassword) throws Exception {
+	public static KeyStore loadKeyStore(String file, char[] ksPassword,String alias) throws Exception {
 		KeyStore ks = KeyStore.getInstance("JCEKS");
 		// this.ksPassword = new PasswordProtection(ksPassword);
 
@@ -35,7 +35,7 @@ public class KeyStoreFunc {
 			fos = new java.io.FileOutputStream(file);
 			KeyPair kpair = CryptoFunctions.genKeyPairs();
 			X509Certificate[] certif = GenCert.generateCertificate(kpair);
-			ks.setKeyEntry(KEY_ALIAS, kpair.getPrivate(),ksPassword, certif);
+			ks.setKeyEntry(alias, kpair.getPrivate(),ksPassword, certif);
 			// ks.store(fos, this.ksPassword.getPassword());
 			ks.store(fos, ksPassword);
 		} finally {

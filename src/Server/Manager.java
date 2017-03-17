@@ -11,13 +11,26 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.UnrecoverableEntryException;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
+import java.security.KeyStore.PasswordProtection;
 import java.util.Base64;
 import java.util.Hashtable;
 import java.util.Map;
@@ -25,8 +38,15 @@ import java.util.Map;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyAgreement;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import javax.crypto.interfaces.DHPrivateKey;
+import javax.crypto.interfaces.DHPublicKey;
+import javax.crypto.spec.DHParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+
+import Crypto.CryptoFunctions;
 import Crypto.KeyStoreFunc;
 import Exceptions.DomainNotFoundException;
 import Exceptions.UserAlreadyRegisteredException;
@@ -40,7 +60,8 @@ import Exceptions.UsernameNotFoundException;
 public class Manager  {
 
 	private static final String SECRET_KEY_ALIAS = "secretServerKey";
-	private static final String SERVER_PAIR_ALIAS="ServerPair";
+	private static final String SERVER_PAIR_ALIAS="serversec";
+	
 
 	private static final String KS_PATH = System.getProperty("user.dir") + "\\Resources\\KeyStore.jks";
 	public static final String USERS_FILE = System.getProperty("user.dir") + "\\Resources\\Users";
@@ -48,27 +69,89 @@ public class Manager  {
 
 	private static final String CIPHER_ALG = "AES/ECB/PKCS5Padding";
 	
-	//private KeyStore ks;
+	int bitLength = 1024;
+	SecureRandom rnd = new SecureRandom();
+	BigInteger p = BigInteger.probablePrime(bitLength, rnd);
+	BigInteger g = BigInteger.probablePrime(bitLength, rnd);
+	
+	private KeyStore ks;
 //	private KeyStoreFunc keyStore;
 	private Map<ByteArrayWrapper, User> users;
+	private PasswordProtection ksPassword;
+	private Map<ByteArrayWrapper, Key> sessionKeys;
 	
 
-	private void serverImpl(char[] password) {
+	private void serverImpl(char[] password) throws ClassNotFoundException, IOException {
 		this.users = new Hashtable<ByteArrayWrapper, User>();
+		this.sessionKeys = new Hashtable<ByteArrayWrapper, Key>();
+			
+		
 	}
 
 	public Manager(char[] ksPassword)
 			throws Exception {
 		this.serverImpl(ksPassword);
 		//loadKeyStore(KS_PAHT);
-		KeyStoreFunc.loadKeyStore(KS_PATH, ksPassword);
+		this.ksPassword = new PasswordProtection(ksPassword);
+		this.ks=KeyStoreFunc.loadKeyStore(KS_PATH, ksPassword,SERVER_PAIR_ALIAS);
+	}
+	
+	public Key init(Key clientPk) throws InvalidKeyException, IllegalStateException, NoSuchAlgorithmException, UnrecoverableEntryException, KeyStoreException, InvalidKeySpecException, InvalidAlgorithmParameterException{
+		// Use the values to generate a key pair
+	    KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH");
+	    DHParameterSpec dhSpec = new DHParameterSpec(g, p);
+	    keyGen.initialize(dhSpec);
+	    KeyPair keypair = keyGen.generateKeyPair();
+
+	    // Get the generated public and private keys
+	    Key privateKey =  keypair.getPrivate();
+	    Key publicKey =  keypair.getPublic();
+
+	    // Send the public key bytes to the other party...
+//	    byte[] publicKeyBytes = publicKey.getEncoded();
+
+	    // Retrieve the public key bytes of the other party
+	    
+	    
+	 // Convert the public key bytes into a PublicKey object
+//	    X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(clientPk);
+//	    KeyFactory keyFact = KeyFactory.getInstance("DH");
+//	    publicKey = keyFact.generatePublic(x509KeySpec);
+
+	    // Prepare to generate the secret key with the private key and public key of the other party
+	    KeyAgreement ka = KeyAgreement.getInstance("DH");
+	    ka.init(privateKey);
+	    ka.doPhase((PublicKey)clientPk, true);
+
+	    // Specify the type of key to generate;
+	    // see Listing All Available Symmetric Key Generators
+	    String algorithm = "DES";
+
+	    // Generate the secret key
+	    SecretKey secretKey = ka.generateSecret(algorithm);
+	    
+	    sessionKeys.put(new ByteArrayWrapper(Base64.getEncoder().encode(clientPk.getEncoded())), secretKey);
+	    return publicKey;
+
+		
+		//		KeyAgreement ka = KeyAgreement.getInstance("DH");
+//		ka.init(KeyStoreFunc.getPrivateKey(ks, SERVER_PAIR_ALIAS, this.ksPassword));
+//		ka.doPhase(clientPk, true);
+//		byte[] secrectKey= ka.generateSecret();
+//		Key sessionKey = new SecretKeySpec(secrectKey, "AES");
+//		sessionKeys.put(clientPk, sessionKey);
+	}
+	
+	protected Key getSessionKey(PublicKey clientPk){
+		return this.sessionKeys.get(clientPk);
 	}
 
 	public Manager(String file, char[] ksPassword)
 			throws Exception {
 		this.serverImpl(ksPassword);
 		//loadKeyStore(file);
-		KeyStoreFunc.loadKeyStore(file, ksPassword);
+		this.ksPassword = new PasswordProtection(ksPassword);
+		this.ks=KeyStoreFunc.loadKeyStore(KS_PATH, ksPassword,SERVER_PAIR_ALIAS);
 	}
 
 	

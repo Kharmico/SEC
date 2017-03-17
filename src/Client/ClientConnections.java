@@ -3,8 +3,10 @@
  */
 package Client;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.security.Key;
 
 import javax.crypto.SecretKey;
 import javax.ws.rs.BadRequestException;
@@ -31,7 +33,7 @@ public final class ClientConnections {
 	public static final String SERVER_URL = "http://localhost:9000";
 	public static final int OK = 200;
 	public static final int BAD_REQUEST = 400;
-	private static SecretKey MASTER_KEY;
+	
 	
 
 	private WebTarget target;
@@ -43,8 +45,18 @@ public final class ClientConnections {
 		target = client.target(UriBuilder.fromUri(SERVER_URL).build());
 		
 	}
-
 	@SuppressWarnings("unchecked")
+	public byte[] init(String pubKey, byte[] signature_pubKey,String dfhPubKey) throws ConectionFailedException, ClassNotFoundException, IOException {
+		JSONObject j = new JSONObject();
+		j.put("pubKey", pubKey);
+		j.put("pubKeySignature", new String(signature_pubKey));
+		j.put("dfhPubKey", dfhPubKey);
+		String json = URLEncoder.encode(j.toJSONString(), "UTF-8");
+
+		WebTarget target = this.target.path(String.format("/Server/Init/%s/", json));
+		return  target.request().accept(MediaType.APPLICATION_JSON).get(byte[].class);
+		
+	}	@SuppressWarnings("unchecked")
 	public void register(String pubKey, byte[] signature_pubKey) throws ConectionFailedException {
 		JSONObject j = new JSONObject();
 		j.put("pubKey", pubKey);

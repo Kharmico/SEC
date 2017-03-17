@@ -5,6 +5,7 @@ package Client;
 
 import java.io.IOException;
 import java.rmi.RemoteException;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -12,6 +13,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
+import java.security.spec.InvalidKeySpecException;
 
 import javax.security.auth.DestroyFailedException;
 
@@ -28,8 +30,15 @@ public interface PasswordManager {
 	 * @throws NoSuchAlgorithmException 
 	 * @throws IOException 
 	 * @throws ClassNotFoundException 
+	 * @throws KeyStoreException 
+	 * @throws UnrecoverableEntryException 
+	 * @throws InvalidKeyException 
+	 * @throws SignatureException 
+	 * @throws InvalidKeySpecException 
+	 * @throws InvalidKeySpecException
+	 * @throws InvalidAlgorithmParameterException 
 	 */
-	void init(KeyStore ks, char[] ksPassword) throws NoSuchAlgorithmException, ClassNotFoundException, IOException;
+	void init(KeyStore ks, char[] ksPassword) throws NoSuchAlgorithmException, ClassNotFoundException, IOException, InvalidKeyException, UnrecoverableEntryException, KeyStoreException, SignatureException, InvalidKeySpecException, InvalidAlgorithmParameterException;
 	
 	/**
 	 * @throws RemoteException 

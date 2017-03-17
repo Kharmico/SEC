@@ -17,6 +17,7 @@ import Crypto.KeyStoreFunc;
 public class ClientApp {
 
 	private static final String KS_PATH = System.getProperty("user.dir") + "\\Resources\\";
+	private static final String CLIENT_PAIR_ALIAS = "clientPair";
 	
 	/**
 	 * @param args
@@ -53,7 +54,7 @@ public class ClientApp {
 						KeyStore ks = null;
 //						kstorefunc.loadKeyStore(KS_PATH,ksPassword);
 //						ks = kstorefunc.getKeyStore();
-						ks=KeyStoreFunc.loadKeyStore(String.format("%s%s%s", KS_PATH,keystore,".jceks"),ksPassword);
+						ks=KeyStoreFunc.loadKeyStore(String.format("%s%s%s", KS_PATH,keystore,".jceks"),ksPassword,CLIENT_PAIR_ALIAS);
 						cman.init(ks, ksPassword);
 					}
 					else System.out.println("You did not insert at least 1 argument for this instruction.\n"
