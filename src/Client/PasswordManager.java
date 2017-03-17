@@ -26,8 +26,10 @@ public interface PasswordManager {
 	 * @param ks
 	 * @param ksPassword
 	 * @throws NoSuchAlgorithmException 
+	 * @throws IOException 
+	 * @throws ClassNotFoundException 
 	 */
-	void init(KeyStore ks, char[] ksPassword) throws NoSuchAlgorithmException;
+	void init(KeyStore ks, char[] ksPassword) throws NoSuchAlgorithmException, ClassNotFoundException, IOException;
 	
 	/**
 	 * @throws RemoteException 

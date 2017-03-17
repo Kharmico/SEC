@@ -53,7 +53,7 @@ public final class ClientConnections {
 
 	@SuppressWarnings("unchecked")
 	public void put(String pubKey, String signature_pubKey, String domain, String signature_domain, String username,
-			String signature_username, String signature_password, String password) {
+			String signature_username, String password, String signature_password) {
 		JSONObject j = new JSONObject();
 		j.put("pubKey", pubKey);
 		j.put("pubKeySignature", signature_pubKey);
@@ -65,7 +65,7 @@ public final class ClientConnections {
 		j.put("passwordSignature", signature_password);
 		WebTarget target = this.target.path(String.format("/Server/Put"));
 		Response response = target.request().accept(MediaType.APPLICATION_JSON)
-				.put(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
+				.post(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
 		checkStatus(response);
 	}
 

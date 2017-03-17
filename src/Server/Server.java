@@ -14,6 +14,8 @@ import java.security.KeyStore.PasswordProtection;
 import java.security.PublicKey;
 import java.util.Base64;
 import java.util.Enumeration;
+
+import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -48,7 +50,7 @@ public class Server {
 	public static final int PORT = 9000;
 	public static final int OK = 200;
 	public static final int BAD_REQUEST = 400;
-	private static final byte[] MASTER_KEY = Base64.getDecoder().decode("/SJpodDfXUbZB4u119dKQg==".getBytes());
+	private static SecretKey MASTER_KEY ;
 	private static final PasswordProtection DEFAULT_KS_PASSWORD = new PasswordProtection(
 			"a26tUfrGg4e4LHX".toCharArray());
 
@@ -69,6 +71,8 @@ public class Server {
 			manager = args.length > 1 ? new Manager(args[1], args[0].toCharArray())
 					: new Manager(args[0].toCharArray());
 		}
+		 MASTER_KEY = (SecretKey)CryptoFunctions.desSerialize("rO0ABXNyAB9qYXZheC5jcnlwdG8uc3BlYy5TZWNyZXRLZXlTcGVjW0cLZuIwYU0CAAJMAAlhbGdvcml0aG10ABJMamF2YS9sYW5nL1N0cmluZztbAANrZXl0AAJbQnhwdAADQUVTdXIAAltCrPMX+AYIVOACAAB4cAAAABCJzON5PSWnsYxFrxWAd1dA");
+			
 
 		// InetAddress s = localhostAddress();
 		// String myUrl = String.format("http://%s:%s/",
@@ -98,10 +102,11 @@ public class Server {
 			String pubKey = (String) json.get("pubKey");
 			String signature_pubKey = (String) json.get("pubKeySignature");
 			Key k = (Key) CryptoFunctions.desSerialize(pubKey);
-			if (!CryptoFunctions.verifySignature(pubKey.getBytes(), signature_pubKey.getBytes(), (PublicKey) k))
-				Response.status(400).build();
+			if (!CryptoFunctions.verifySignature(pubKey.getBytes(), signature_pubKey.getBytes(), (PublicKey) k)) {
+				return Response.status(400).build();
+			}
 			manager.register(k);
-			
+
 			System.out.println("Register ok");
 			return Response.status(200).build();
 		} catch (UserAlreadyRegisteredException u) {
@@ -113,7 +118,7 @@ public class Server {
 
 	}
 
-	@PUT
+	@POST
 	@Path("/Put")
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Response put(String param) {
@@ -122,36 +127,39 @@ public class Server {
 
 		JSONObject json;
 		try {
-			Key superKey = new SecretKeySpec(MASTER_KEY, "AES");
 			json = getJason(param);
-			
+//			Key superKey = new SecretKeySpec(MASTER_KEY, "AES");
+
 			String pubKey = (String) json.get("pubKey");
 			String signature_pubKey = (String) json.get("pubKeySignature");
 			Key k = (Key) CryptoFunctions.desSerialize(pubKey);
-			if (!CryptoFunctions.verifySignature(pubKey.getBytes(), signature_pubKey.getBytes(), (PublicKey) k))
+			if (!CryptoFunctions.verifySignature(pubKey.getBytes(), signature_pubKey.getBytes(), (PublicKey) k)){
 				Response.status(400).build();
+			}
 			
+			byte[] username = CryptoFunctions.decrypt_data_symmetric((String) json.get("username"), MASTER_KEY);
+			byte[] signature_username = CryptoFunctions.decrypt_data_symmetric((String) json.get("usernameSignature"),
+					MASTER_KEY);
 
-			byte[] username = CryptoFunctions.decrypt_data_symmetric((String) json.get("username"), superKey);
-			byte[] signature_username = CryptoFunctions.decrypt_data_symmetric((String) json.get("usernameSignature"), superKey);
-			
 			if (!CryptoFunctions.verifySignature(username, signature_username, (PublicKey) k))
-				Response.status(400).build();
-			
+				return Response.status(400).build();
 
-			byte[] domain = CryptoFunctions.decrypt_data_symmetric((String) json.get("domain"),superKey);
-			byte[] signature_domain = CryptoFunctions.decrypt_data_symmetric((String) json.get("domainSignature"),superKey);
+			byte[] domain = CryptoFunctions.decrypt_data_symmetric((String) json.get("domain"), MASTER_KEY);
+			byte[] signature_domain = CryptoFunctions.decrypt_data_symmetric((String) json.get("domainSignature"),
+					MASTER_KEY);
 			if (!CryptoFunctions.verifySignature(domain, signature_domain, (PublicKey) k))
-				Response.status(400).build();
+				return  Response.status(400).build();
 
-			byte[] password = CryptoFunctions.decrypt_data_symmetric((String) json.get("password"),superKey);
-			byte[] signature_password = CryptoFunctions.decrypt_data_symmetric((String) json.get("passwordSignature"),superKey);
+			byte[] password = CryptoFunctions.decrypt_data_symmetric((String) json.get("password"), MASTER_KEY);
+			byte[] signature_password = CryptoFunctions.decrypt_data_symmetric((String) json.get("passwordSignature"),
+					MASTER_KEY);
 			if (!CryptoFunctions.verifySignature(password, signature_password, (PublicKey) k))
-				Response.status(400).build();
+				return Response.status(400).build();
 
 			manager.put(k, domain, username, password);
 
-//			System.out.println("pubkey " + Base64.getEncoder().encodeToString(k.getEncoded()));
+			// System.out.println("pubkey " +
+			// Base64.getEncoder().encodeToString(k.getEncoded()));
 			return Response.status(200).build();
 		} catch (Exception e1) {
 
@@ -170,32 +178,32 @@ public class Server {
 
 		JSONObject json;
 		try {
-			Key superKey = new SecretKeySpec(MASTER_KEY, "AES");
+//			Key superKey = new SecretKeySpec(MASTER_KEY, "AES");
 			json = getJason(param);
-			
+
 			String pubKey = (String) json.get("pubKey");
 			String signature_pubKey = (String) json.get("pubKeySignature");
 			Key k = (Key) CryptoFunctions.desSerialize(pubKey);
 			if (!CryptoFunctions.verifySignature(pubKey.getBytes(), signature_pubKey.getBytes(), (PublicKey) k))
-				Response.status(400).build();
-			
+				return Response.status(400).build();
+			String aux= (String) json.get("username");
+			byte[] username = CryptoFunctions.decrypt_data_symmetric(new String(Base64.getDecoder().decode(aux.getBytes())), MASTER_KEY);
+			byte[] signature_username = CryptoFunctions.decrypt_data_symmetric((String) json.get("usernameSignature"),
+					MASTER_KEY);
 
-			byte[] username = CryptoFunctions.decrypt_data_symmetric((String) json.get("username"), superKey);
-			byte[] signature_username = CryptoFunctions.decrypt_data_symmetric((String) json.get("usernameSignature"), superKey);
-			
 			if (!CryptoFunctions.verifySignature(username, signature_username, (PublicKey) k))
-				Response.status(400).build();
-			
+				return Response.status(400).build();
 
-			byte[] domain = CryptoFunctions.decrypt_data_symmetric((String) json.get("domain"),superKey);
-			byte[] signature_domain = CryptoFunctions.decrypt_data_symmetric((String) json.get("domainSignature"),superKey);
+			byte[] domain = CryptoFunctions.decrypt_data_symmetric((String) json.get("domain"), MASTER_KEY);
+			byte[] signature_domain = CryptoFunctions.decrypt_data_symmetric((String) json.get("domainSignature"),
+					MASTER_KEY);
 			if (!CryptoFunctions.verifySignature(domain, signature_domain, (PublicKey) k))
-				Response.status(400).build();
-			
+				return Response.status(400).build();
+
 			byte[] password = manager.get(k, domain, username);
-			
-			String pw=CryptoFunctions.encrypt_data_symmetric(new String(password),superKey);
-			
+
+			String pw = CryptoFunctions.encrypt_data_symmetric(new String(password), MASTER_KEY);
+
 			return Response.ok(pw).build();
 		} catch (Exception e1) {
 

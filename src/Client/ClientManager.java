@@ -15,6 +15,7 @@ import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.util.Base64;
 
+import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.security.auth.DestroyFailedException;
 
@@ -23,7 +24,9 @@ public class ClientManager implements PasswordManager {
 
 	private KeyStore ks = null;
 	private static final String KEY_ALIAS = "serversec";
-	private static final byte[] MASTER_KEY = Base64.getDecoder().decode("/SJpodDfXUbZB4u119dKQg==".getBytes());
+	// private static final byte[] MASTER_KEY =
+	// Base64.getDecoder().decode("/SJpodDfXUbZB4u119dKQg==".getBytes());
+	private static SecretKey MASTER_KEY;
 
 	// char[] _ksPassword = null;
 	ClientConnections clientconn = null;
@@ -40,7 +43,10 @@ public class ClientManager implements PasswordManager {
 	 * is called.
 	 */
 	@Override
-	public void init(KeyStore ks, char[] ksPassword) throws NoSuchAlgorithmException {
+	public void init(KeyStore ks, char[] ksPassword)
+			throws NoSuchAlgorithmException, ClassNotFoundException, IOException {
+		MASTER_KEY = (SecretKey) CryptoFunctions.desSerialize(
+				"rO0ABXNyAB9qYXZheC5jcnlwdG8uc3BlYy5TZWNyZXRLZXlTcGVjW0cLZuIwYU0CAAJMAAlhbGdvcml0aG10ABJMamF2YS9sYW5nL1N0cmluZztbAANrZXl0AAJbQnhwdAADQUVTdXIAAltCrPMX+AYIVOACAAB4cAAAABCJzON5PSWnsYxFrxWAd1dA");
 		this.ks = ks;
 		this.ksPassword = new PasswordProtection(ksPassword);
 		clientconn = new ClientConnections();
@@ -55,13 +61,11 @@ public class ClientManager implements PasswordManager {
 	public void register_user() throws Exception {
 
 		// Get the public key to send!!!
-		PublicKey pk = KeyStoreFunc.getPublicKey(ks, KEY_ALIAS);
-//		Key superKey = new SecretKeySpec(MASTER_KEY, "AES");
+		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, KEY_ALIAS);
 		PrivateKey privk = KeyStoreFunc.getPrivateKey(ks, KEY_ALIAS, ksPassword);
-		String s_pk=CryptoFunctions.serialize(pk);
-		byte[] signature = CryptoFunctions.sign_data(s_pk.getBytes(), privk);
-//		s_pk=CryptoFunctions.encrypt_data(s_pk, superKey);
-		clientconn.register(s_pk,new String(signature));
+		String serialize_pk = CryptoFunctions.serialize(pubk);
+		byte[] signature = CryptoFunctions.sign_data(serialize_pk.getBytes(), privk);
+		clientconn.register(serialize_pk, new String(signature));
 
 	}
 
@@ -76,23 +80,27 @@ public class ClientManager implements PasswordManager {
 		// Get the public key to send!!!
 		PrivateKey privk = KeyStoreFunc.getPrivateKey(ks, KEY_ALIAS, ksPassword);
 		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, KEY_ALIAS);
-		Key superKey = new SecretKeySpec(MASTER_KEY, "AES");
-		
-		String s_pk=CryptoFunctions.serialize(pubk);	
+		// Key superKey = new SecretKeySpec(MASTER_KEY, "AES");
+
+		String serialize_pk = CryptoFunctions.serialize(pubk);
 		String cypher_d = CryptoFunctions.encrypt_data_asymmetric(new String(domain), pubk);
 		String cypher_u = CryptoFunctions.encrypt_data_asymmetric(new String(username), pubk);
-		String cypher_p = CryptoFunctions.encrypt_data_asymmetric(new String (password), pubk);
-		
-		String s_pubKey = new String(CryptoFunctions.sign_data(s_pk.getBytes(), privk));
+		String cypher_p = CryptoFunctions.encrypt_data_asymmetric(new String(password), pubk);
+
+		byte[] aux = CryptoFunctions.sign_data(serialize_pk.getBytes(), privk);
+		String s_pubKey = new String(aux);
 		String s_domain = new String(CryptoFunctions.sign_data(cypher_d.getBytes(), privk));
 		String s_username = new String(CryptoFunctions.sign_data(cypher_u.getBytes(), privk));
 		String s_password = new String(CryptoFunctions.sign_data(cypher_p.getBytes(), privk));
-			
-		s_domain = CryptoFunctions.encrypt_data_symmetric(s_domain, superKey);
-		s_username = CryptoFunctions.encrypt_data_symmetric(s_username, superKey);
-		s_password = CryptoFunctions.encrypt_data_symmetric(s_password, superKey);
-		
-		clientconn.put(s_pk,s_pubKey,cypher_d, s_domain,cypher_u, s_username,s_password, s_password);
+
+		s_domain = CryptoFunctions.encrypt_data_symmetric(s_domain, MASTER_KEY);
+		s_username = CryptoFunctions.encrypt_data_symmetric(s_username, MASTER_KEY);
+		s_password = CryptoFunctions.encrypt_data_symmetric(s_password, MASTER_KEY);
+		cypher_d = CryptoFunctions.encrypt_data_symmetric(new String(domain), MASTER_KEY);
+		cypher_u = CryptoFunctions.encrypt_data_symmetric(new String(username), MASTER_KEY);
+		cypher_p = CryptoFunctions.encrypt_data_symmetric(new String(password), MASTER_KEY);
+
+		clientconn.put(serialize_pk, new String(aux), cypher_d, s_domain, cypher_u, s_username, cypher_p, s_password);
 	}
 
 	/*
@@ -105,25 +113,23 @@ public class ClientManager implements PasswordManager {
 
 		PrivateKey privk = KeyStoreFunc.getPrivateKey(ks, KEY_ALIAS, ksPassword);
 		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, KEY_ALIAS);
-		Key superKey = new SecretKeySpec(MASTER_KEY, "AES");
-		
-		String s_pk=CryptoFunctions.serialize(pubk);	
+		// Key superKey = new SecretKeySpec(MASTER_KEY, "AES");
+
+		String s_pk = CryptoFunctions.serialize(pubk);
 		String cypher_d = CryptoFunctions.encrypt_data_asymmetric(new String(domain), pubk);
 		String cypher_u = CryptoFunctions.encrypt_data_asymmetric(new String(username), pubk);
-		
-		
+
 		String s_pubKey = new String(CryptoFunctions.sign_data(s_pk.getBytes(), privk));
 		String s_domain = new String(CryptoFunctions.sign_data(cypher_d.getBytes(), privk));
 		String s_username = new String(CryptoFunctions.sign_data(cypher_u.getBytes(), privk));
-	
-			
-		s_domain = CryptoFunctions.encrypt_data_symmetric(s_domain, superKey);
-		s_username = CryptoFunctions.encrypt_data_symmetric(s_username, superKey);
-		
-		// Get the public key to send!!!
-		String rowPassword = clientconn.get(s_pk,s_pubKey,cypher_d, s_domain,cypher_u, s_username);
 
-		byte[] password = CryptoFunctions.decrypt_data_symmetric(rowPassword, superKey);
+		s_domain = CryptoFunctions.encrypt_data_symmetric(s_domain, MASTER_KEY);
+		s_username = CryptoFunctions.encrypt_data_symmetric(s_username, MASTER_KEY);
+
+		// Get the public key to send!!!
+		String rowPassword = clientconn.get(s_pk, s_pubKey, cypher_d, s_domain, cypher_u, s_username);
+
+		byte[] password = CryptoFunctions.decrypt_data_symmetric(rowPassword, MASTER_KEY);
 		return CryptoFunctions.decrypt_data_asymmetric(new String(password), privk);
 
 	}
