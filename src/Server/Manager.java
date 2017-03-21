@@ -57,123 +57,117 @@ import Exceptions.UsernameNotFoundException;
  * @author paulo
  *
  */
-public class Manager  {
+public class Manager {
 
 	private static final String SECRET_KEY_ALIAS = "secretServerKey";
-	private static final String SERVER_PAIR_ALIAS="serversec";
-	
+	private static final String SERVER_PAIR_ALIAS = "serversec";
 
 	private static final String KS_PATH = System.getProperty("user.dir") + "\\Resources\\KeyStore.jks";
 	public static final String USERS_FILE = System.getProperty("user.dir") + "\\Resources\\Users";
-	
 
 	private static final String CIPHER_ALG = "AES/ECB/PKCS5Padding";
-	
+
 	int bitLength = 1024;
 	SecureRandom rnd = new SecureRandom();
-	BigInteger p = BigInteger.probablePrime(bitLength, rnd);
-	BigInteger g = BigInteger.probablePrime(bitLength, rnd);
-	
+	// BigInteger p = BigInteger.probablePrime(bitLength, rnd);
+	// BigInteger g = BigInteger.probablePrime(bitLength, rnd);
+
 	private KeyStore ks;
-//	private KeyStoreFunc keyStore;
+	// private KeyStoreFunc keyStore;
 	private Map<ByteArrayWrapper, User> users;
 	private PasswordProtection ksPassword;
 	private Map<ByteArrayWrapper, Key> sessionKeys;
-	
 
 	private void serverImpl(char[] password) throws ClassNotFoundException, IOException {
 		this.users = new Hashtable<ByteArrayWrapper, User>();
 		this.sessionKeys = new Hashtable<ByteArrayWrapper, Key>();
-			
-		
+
 	}
 
-	public Manager(char[] ksPassword)
-			throws Exception {
+	public Manager(char[] ksPassword) throws Exception {
 		this.serverImpl(ksPassword);
-		//loadKeyStore(KS_PAHT);
+		// loadKeyStore(KS_PAHT);
 		this.ksPassword = new PasswordProtection(ksPassword);
-		this.ks=KeyStoreFunc.loadKeyStore(KS_PATH, ksPassword,SERVER_PAIR_ALIAS);
+		this.ks = KeyStoreFunc.loadKeyStore(KS_PATH, ksPassword, SERVER_PAIR_ALIAS);
 	}
-	
-	public Key init(Key clientPk) throws InvalidKeyException, IllegalStateException, NoSuchAlgorithmException, UnrecoverableEntryException, KeyStoreException, InvalidKeySpecException, InvalidAlgorithmParameterException{
+
+	public Key init(Key pk, Key dhPk, BigInteger g, BigInteger p)
+			throws InvalidKeyException, IllegalStateException, NoSuchAlgorithmException, UnrecoverableEntryException,
+			KeyStoreException, InvalidKeySpecException, InvalidAlgorithmParameterException {
 		// Use the values to generate a key pair
-	    KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH");
-	    DHParameterSpec dhSpec = new DHParameterSpec(g, p);
-	    keyGen.initialize(dhSpec);
-	    KeyPair keypair = keyGen.generateKeyPair();
+		KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH");
+		DHParameterSpec dhSpec = new DHParameterSpec(p, g);
+		keyGen.initialize(dhSpec);
+		KeyPair keypair = keyGen.generateKeyPair();
 
-	    // Get the generated public and private keys
-	    Key privateKey =  keypair.getPrivate();
-	    Key publicKey =  keypair.getPublic();
+		// Get the generated public and private keys
+		Key privateKey = keypair.getPrivate();
+		Key publicKey = keypair.getPublic();
 
-	    // Send the public key bytes to the other party...
-//	    byte[] publicKeyBytes = publicKey.getEncoded();
+		// Send the public key bytes to the other party...
+		// byte[] publicKeyBytes = publicKey.getEncoded();
 
-	    // Retrieve the public key bytes of the other party
-	    
-	    
-	 // Convert the public key bytes into a PublicKey object
-//	    X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(clientPk);
-//	    KeyFactory keyFact = KeyFactory.getInstance("DH");
-//	    publicKey = keyFact.generatePublic(x509KeySpec);
-	    byte[] aux= Base64.getEncoder().encode(clientPk.getEncoded());
-		 aux= clientPk.getEncoded();
-	    System.out.println("DH PUBKEY CLIENT "+ new String(Base64.getEncoder().encode(clientPk.getEncoded())));
-	    // Prepare to generate the secret key with the private key and public key of the other party
-	    KeyAgreement ka = KeyAgreement.getInstance("DH");
-	    ka.init(privateKey);
-	    ka.doPhase((PublicKey)clientPk, true);
+		// Retrieve the public key bytes of the other party
 
-	    // Specify the type of key to generate;
-	    // see Listing All Available Symmetric Key Generators
-	    String algorithm = "DES";
-	  
-	    // Generate the secret key
-	    SecretKey secretKey = ka.generateSecret(algorithm);
-	    
-	    sessionKeys.put(new ByteArrayWrapper(Base64.getEncoder().encode(clientPk.getEncoded())), secretKey);
-	    return publicKey;
-
+		// Convert the public key bytes into a PublicKey object
+		// X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(clientPk);
+		// KeyFactory keyFact = KeyFactory.getInstance("DH");
+		// publicKey = keyFact.generatePublic(x509KeySpec);
 		
-		//		KeyAgreement ka = KeyAgreement.getInstance("DH");
-//		ka.init(KeyStoreFunc.getPrivateKey(ks, SERVER_PAIR_ALIAS, this.ksPassword));
-//		ka.doPhase(clientPk, true);
-//		byte[] secrectKey= ka.generateSecret();
-//		Key sessionKey = new SecretKeySpec(secrectKey, "AES");
-//		sessionKeys.put(clientPk, sessionKey);
-	}
-	
-	protected Key getSessionKey(PublicKey clientPk){
-		return this.sessionKeys.get(clientPk);
+		System.out.println("DH PUBKEY CLIENT " + new String(Base64.getEncoder().encode(dhPk.getEncoded())));
+		// Prepare to generate the secret key with the private key and public
+		// key of the other party
+		KeyAgreement ka = KeyAgreement.getInstance("DH");
+		ka.init(privateKey);
+		ka.doPhase(dhPk, true);
+
+		// Specify the type of key to generate;
+		// see Listing All Available Symmetric Key Generators
+		String algorithm = "AES";
+
+		// Generate the secret key
+		SecretKey secretKey = ka.generateSecret(algorithm);
+		ByteArrayWrapper aux=new ByteArrayWrapper(Base64.getEncoder().encode(pk.getEncoded()));
+		sessionKeys.put(aux, secretKey);
+		return publicKey;
+
+		// KeyAgreement ka = KeyAgreement.getInstance("DH");
+		// ka.init(KeyStoreFunc.getPrivateKey(ks, SERVER_PAIR_ALIAS,
+		// this.ksPassword));
+		// ka.doPhase(clientPk, true);
+		// byte[] secrectKey= ka.generateSecret();
+		// Key sessionKey = new SecretKeySpec(secrectKey, "AES");
+		// sessionKeys.put(clientPk, sessionKey);
 	}
 
-	public Manager(String file, char[] ksPassword)
-			throws Exception {
+	protected Key getSessionKey(PublicKey clientPk) {
+		ByteArrayWrapper aux=new ByteArrayWrapper(Base64.getEncoder().encode(clientPk.getEncoded()));
+		return this.sessionKeys.get(aux);
+	}
+
+	public Manager(String file, char[] ksPassword) throws Exception {
 		this.serverImpl(ksPassword);
-		//loadKeyStore(file);
+		// loadKeyStore(file);
 		this.ksPassword = new PasswordProtection(ksPassword);
-		this.ks=KeyStoreFunc.loadKeyStore(KS_PATH, ksPassword,SERVER_PAIR_ALIAS);
+		this.ks = KeyStoreFunc.loadKeyStore(KS_PATH, ksPassword, SERVER_PAIR_ALIAS);
 	}
 
-	
 	public void register(Key publicKey) throws UserAlreadyRegisteredException {
-		ByteArrayWrapper pk = new ByteArrayWrapper(Base64.getEncoder().encode(publicKey.getEncoded()));
+		ByteArrayWrapper	pk = new ByteArrayWrapper(Base64.getEncoder().encode(publicKey.getEncoded()));
 		if (this.users.containsKey(pk))
 			throw new UserAlreadyRegisteredException();
 		this.users.put(pk, new User(pk));
 	}
 
-	
-	public void put(Key publicKey, byte[] domain, byte[] username, byte[] password) throws UserNotRegisteredException{
+	public void put(Key publicKey, byte[] domain, byte[] username, byte[] password) throws UserNotRegisteredException {
 		ByteArrayWrapper pk = new ByteArrayWrapper(Base64.getEncoder().encode(publicKey.getEncoded()));
 		if (!this.users.containsKey(pk))
 			throw new UserNotRegisteredException();
 		this.users.get(pk).put(domain, username, password);
 	}
 
-	
-	public byte[] get(Key publicKey, byte[] domain, byte[] username) throws UserNotRegisteredException,DomainNotFoundException,UsernameNotFoundException {
+	public byte[] get(Key publicKey, byte[] domain, byte[] username)
+			throws UserNotRegisteredException, DomainNotFoundException, UsernameNotFoundException {
 
 		ByteArrayWrapper pk = new ByteArrayWrapper(Base64.getEncoder().encode(publicKey.getEncoded()));
 		if (!this.users.containsKey(pk))
@@ -184,47 +178,34 @@ public class Manager  {
 	public int usersSize() {
 		return this.users.size();
 	}
-	
-	
-	//OLD STUFF, DIDN'T DELETE JUST IN CASE
-	/*public void safeStore(char[] ksPassword)
-			throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
-		// store away the keystore
-		java.io.FileOutputStream fos = null;
-		try {
-			fos = new java.io.FileOutputStream("newKeyStoreName");
-			ks.store(fos, ksPassword);
-		} finally {
-			if (fos != null) {
-				fos.close();
-			}
-		}
 
-	}*/
+	// OLD STUFF, DIDN'T DELETE JUST IN CASE
+	/*
+	 * public void safeStore(char[] ksPassword) throws KeyStoreException,
+	 * NoSuchAlgorithmException, CertificateException, IOException { // store
+	 * away the keystore java.io.FileOutputStream fos = null; try { fos = new
+	 * java.io.FileOutputStream("newKeyStoreName"); ks.store(fos, ksPassword); }
+	 * finally { if (fos != null) { fos.close(); } }
+	 * 
+	 * }
+	 */
 
-	/*private void loadKeyStore(String file)
-			throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
-		ks = KeyStore.getInstance(KeyStore.getDefaultType());
+	/*
+	 * private void loadKeyStore(String file) throws KeyStoreException,
+	 * NoSuchAlgorithmException, CertificateException, IOException { ks =
+	 * KeyStore.getInstance(KeyStore.getDefaultType());
+	 * 
+	 * // java.io.FileInputStream fis = null; try { fis = new
+	 * java.io.FileInputStream(file); ks.load(fis,
+	 * this.ksPassword.getPassword()); } finally { if (fis != null) {
+	 * fis.close(); } } }
+	 */
+	// ---------------OLD FINITO-------------------------/
 
-		//
-		java.io.FileInputStream fis = null;
-		try {
-			fis = new java.io.FileInputStream(file);
-			ks.load(fis, this.ksPassword.getPassword());
-		} finally {
-			if (fis != null) {
-				fis.close();
-			}
-		}
-	}*/
-	//---------------OLD FINITO-------------------------/
-	
-
-
-//	public boolean hasKs() {
-//		//return this.ks != null;
-//		return this.keyStore != null;
-//	}
+	// public boolean hasKs() {
+	// //return this.ks != null;
+	// return this.keyStore != null;
+	// }
 
 	public void writeUsersFiles(SecretKey key)
 			throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException,
@@ -283,28 +264,30 @@ public class Manager  {
 		}
 
 	}
-	
-//	//guardar uma secret key - dá Cannot store non private keys
-//		public void storeSecretKey(SecretKey key) throws KeyStoreException, NoSuchAlgorithmException, CertificateException,
-//				FileNotFoundException, IOException {
-//			
-//			KeyStore.SecretKeyEntry keyStoreEntry = new KeyStore.SecretKeyEntry(key);
-//
-//			// Store our secret key
-//			ks.setEntry(SECRET_KEY_ALIAS, keyStoreEntry, this.ksPassword);
-//			ks.store(new FileOutputStream(KS_PAHT), this.ksPassword.getPassword());
-//
-//		}
-//		
-//		public SecretKey retrieveKey() throws NoSuchAlgorithmException, UnrecoverableEntryException, KeyStoreException {
-//
-//		    //Retrieve the entry from the keystore
-//		    KeyStore.Entry entry = ks.getEntry(SECRET_KEY_ALIAS, this.ksPassword);
-//
-//		    //Assign the entry as our secret key for later retrieval.
-//		    SecretKey key = ((KeyStore.SecretKeyEntry) entry).getSecretKey();
-//
-//		    return key;
-//		}
+
+	// //guardar uma secret key - dá Cannot store non private keys
+	// public void storeSecretKey(SecretKey key) throws KeyStoreException,
+	// NoSuchAlgorithmException, CertificateException,
+	// FileNotFoundException, IOException {
+	//
+	// KeyStore.SecretKeyEntry keyStoreEntry = new KeyStore.SecretKeyEntry(key);
+	//
+	// // Store our secret key
+	// ks.setEntry(SECRET_KEY_ALIAS, keyStoreEntry, this.ksPassword);
+	// ks.store(new FileOutputStream(KS_PAHT), this.ksPassword.getPassword());
+	//
+	// }
+	//
+	// public SecretKey retrieveKey() throws NoSuchAlgorithmException,
+	// UnrecoverableEntryException, KeyStoreException {
+	//
+	// //Retrieve the entry from the keystore
+	// KeyStore.Entry entry = ks.getEntry(SECRET_KEY_ALIAS, this.ksPassword);
+	//
+	// //Assign the entry as our secret key for later retrieval.
+	// SecretKey key = ((KeyStore.SecretKeyEntry) entry).getSecretKey();
+	//
+	// return key;
+	// }
 
 }

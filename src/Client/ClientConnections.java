@@ -46,11 +46,13 @@ public final class ClientConnections {
 		
 	}
 	@SuppressWarnings("unchecked")
-	public byte[] init(String pubKey, byte[] signature_pubKey,String dfhPubKey) throws ConectionFailedException, ClassNotFoundException, IOException {
+	public byte[] init(String pubKey, byte[] signature_pubKey,String dfhPubKey, String g,String p) throws ConectionFailedException, ClassNotFoundException, IOException {
 		JSONObject j = new JSONObject();
 		j.put("pubKey", pubKey);
 		j.put("pubKeySignature", new String(signature_pubKey));
 		j.put("dfhPubKey", dfhPubKey);
+		j.put("g", g);
+		j.put("p", p);
 		String json = URLEncoder.encode(j.toJSONString(), "UTF-8");
 
 		WebTarget target = this.target.path(String.format("/Server/Init/%s/", json));

@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.lang.reflect.Field;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -26,6 +27,8 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 
+
+
 import java.security.PrivateKey;
 
 public class CryptoFunctions {
@@ -33,6 +36,17 @@ public class CryptoFunctions {
 	private static final int ASSYM_K_GEN_BYTES = 2048;
 	static byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     static IvParameterSpec ivspec = new IvParameterSpec(iv);
+    
+    public static void setJcePolicy(){
+    	try { 
+    		Field field = Class.forName("javax.crypto.JceSecurity").
+    		getDeclaredField("isRestricted");
+    		field.setAccessible(true);
+    		field.set(null, java.lang.Boolean.FALSE); 
+    		} catch (Exception ex) {
+    		ex.printStackTrace();
+    		}
+    }
 	
 	public static byte[] decrypt_data_symmetric(byte[] encData,Key k)
 	        throws NoSuchAlgorithmException, NoSuchPaddingException,

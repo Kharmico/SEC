@@ -3,6 +3,7 @@ package Client;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -55,8 +56,8 @@ public class ClientManager implements PasswordManager {
 	SecureRandom rnd = new SecureRandom();
 	BigInteger p = BigInteger.probablePrime(bitLength, rnd);
 	BigInteger g = BigInteger.probablePrime(bitLength, rnd);
-	
-//	private static  SecretKey MASTER_KEY;
+
+	// private static SecretKey MASTER_KEY;
 
 	/*
 	 * Specification: initializes the library before its first use. This method
@@ -70,36 +71,40 @@ public class ClientManager implements PasswordManager {
 	 */
 	@Override
 	public void init(KeyStore ks, char[] ksPassword) throws NoSuchAlgorithmException, ClassNotFoundException,
-			IOException, UnrecoverableEntryException, KeyStoreException, SignatureException, InvalidKeySpecException, InvalidAlgorithmParameterException, InvalidKeyException, NoSuchProviderException {
+			IOException, UnrecoverableEntryException, KeyStoreException, SignatureException, InvalidKeySpecException,
+			InvalidAlgorithmParameterException, InvalidKeyException, NoSuchProviderException {
 		this.ks = ks;
 		this.ksPassword = new PasswordProtection(ksPassword);
 		clientconn = new ClientConnections();
-//		MASTER_KEY = (SecretKey) CryptoFunctions.desSerialize(
-//				"rO0ABXNyAB9qYXZheC5jcnlwdG8uc3BlYy5TZWNyZXRLZXlTcGVjW0cLZuIwYU0CAAJMAAlhbGdvcml0aG10ABJMamF2YS9sYW5nL1N0cmluZztbAANrZXl0AAJbQnhwdAADQUVTdXIAAltCrPMX+AYIVOACAAB4cAAAABCJzON5PSWnsYxFrxWAd1dA");
+		CryptoFunctions.setJcePolicy();
+		// MASTER_KEY = (SecretKey) CryptoFunctions.desSerialize(
+		// "rO0ABXNyAB9qYXZheC5jcnlwdG8uc3BlYy5TZWNyZXRLZXlTcGVjW0cLZuIwYU0CAAJMAAlhbGdvcml0aG10ABJMamF2YS9sYW5nL1N0cmluZztbAANrZXl0AAJbQnhwdAADQUVTdXIAAltCrPMX+AYIVOACAAB4cAAAABCJzON5PSWnsYxFrxWAd1dA");
 
-//diffie-helman
+		// diffie-helman
 		KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH");
-		DHParameterSpec dhSpec = new DHParameterSpec(p , g);
+		DHParameterSpec dhSpec = new DHParameterSpec(p, g);
 		keyGen.initialize(dhSpec);
 		KeyPair keypair = keyGen.generateKeyPair();
 
 		// Get the generated public and private keys
 		PrivateKey dhPrivateKey = (DHPrivateKey) keypair.getPrivate();
 		PublicKey dhPublicKey = (DHPublicKey) keypair.getPublic();
+		
 
 		// Send the public key bytes to the other party...
-//		byte[] publicKeyBytes = publicKey.getEncoded();
+		// byte[] publicKeyBytes = publicKey.getEncoded();
 
 		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, CLIENT_PAIR_ALIAS);
 		PrivateKey privk = KeyStoreFunc.getPrivateKey(ks, CLIENT_PAIR_ALIAS, this.ksPassword);
 		String serialize_pk = CryptoFunctions.serialize(pubk);
 		byte[] signature = CryptoFunctions.sign_data(serialize_pk.getBytes(), privk);
 		// Retrieve the public key bytes of the other party
-		byte[] aux= Base64.getEncoder().encode(dhPublicKey.getEncoded());
-		 aux= dhPublicKey.getEncoded();
-		byte[] clientPk = Base64.getDecoder().decode(clientconn.init(serialize_pk, signature,CryptoFunctions.serialize(dhPublicKey)));
+		byte[] aux = Base64.getEncoder().encode(dhPublicKey.getEncoded());
+		aux = dhPublicKey.getEncoded();
+		byte[] clientPk = Base64.getDecoder().decode(clientconn.init(serialize_pk, signature,
+				CryptoFunctions.serialize(dhPublicKey), CryptoFunctions.serialize(g), CryptoFunctions.serialize(p)));
 
-//		publicKey=(DHPublicKey) CryptoFunctions.desSerialize(clientPk);
+		// publicKey=(DHPublicKey) CryptoFunctions.desSerialize(clientPk);
 		// Convert the public key bytes into a PublicKey object
 		X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(clientPk);
 		KeyFactory keyFact = KeyFactory.getInstance("DH");
@@ -113,12 +118,11 @@ public class ClientManager implements PasswordManager {
 
 		// Specify the type of key to generate;
 		// see Listing All Available Symmetric Key Generators
-		String algorithm = "DES";
+		String algorithm = "AES";
 
 		// Generate the secret key
-//		SecretKey secretKey = ka.generateSecret(algorithm);
-		 sessionKey = ka.generateSecret(algorithm);
-		
+		// SecretKey secretKey = ka.generateSecret(algorithm);
+		sessionKey = ka.generateSecret(algorithm);
 
 		// KeyAgreement ka = KeyAgreement.getInstance("DH");
 		// ka.init(KeyStoreFunc.getPrivateKey(ks, CLIENT_PAIR_ALIAS,
@@ -187,15 +191,17 @@ public class ClientManager implements PasswordManager {
 		hash_d = CryptoFunctions.encrypt_data_symmetric(hash_d, sessionKey);
 		hash_u = CryptoFunctions.encrypt_data_symmetric(hash_u, sessionKey);
 		cypher_p = CryptoFunctions.encrypt_data_symmetric(cypher_p, sessionKey);
-		
-//		s_domain = CryptoFunctions.encrypt_data_symmetric(s_domain, MASTER_KEY);
-//		s_username = CryptoFunctions.encrypt_data_symmetric(s_username, MASTER_KEY);
-//		s_password = CryptoFunctions.encrypt_data_symmetric(s_password, MASTER_KEY);
-//		hash_d = CryptoFunctions.encrypt_data_symmetric(hash_d, MASTER_KEY);
-//		hash_u = CryptoFunctions.encrypt_data_symmetric(hash_u, MASTER_KEY);
-//		cypher_p = CryptoFunctions.encrypt_data_symmetric(cypher_p, MASTER_KEY);
-		
-	
+
+		// s_domain = CryptoFunctions.encrypt_data_symmetric(s_domain,
+		// MASTER_KEY);
+		// s_username = CryptoFunctions.encrypt_data_symmetric(s_username,
+		// MASTER_KEY);
+		// s_password = CryptoFunctions.encrypt_data_symmetric(s_password,
+		// MASTER_KEY);
+		// hash_d = CryptoFunctions.encrypt_data_symmetric(hash_d, MASTER_KEY);
+		// hash_u = CryptoFunctions.encrypt_data_symmetric(hash_u, MASTER_KEY);
+		// cypher_p = CryptoFunctions.encrypt_data_symmetric(cypher_p,
+		// MASTER_KEY);
 
 		clientconn.put(serialize_pk, s_pubKey, hash_d, s_domain, hash_u, s_username, cypher_p, s_password);
 	}
@@ -225,24 +231,27 @@ public class ClientManager implements PasswordManager {
 		byte[] s_pubKey = CryptoFunctions.sign_data(serialize_pk.getBytes(), privk);
 		byte[] s_domain = CryptoFunctions.sign_data(hash_d, privk);
 		byte[] s_username = CryptoFunctions.sign_data(hash_u, privk);
-		
+
 		s_domain = CryptoFunctions.encrypt_data_symmetric(s_domain, sessionKey);
 		s_username = CryptoFunctions.encrypt_data_symmetric(s_username, sessionKey);
 
 		hash_d = CryptoFunctions.encrypt_data_symmetric(hash_d, sessionKey);
 		hash_u = CryptoFunctions.encrypt_data_symmetric(hash_u, sessionKey);
-		
-//		s_domain = CryptoFunctions.encrypt_data_symmetric(s_domain, MASTER_KEY);
-//		s_username = CryptoFunctions.encrypt_data_symmetric(s_username, MASTER_KEY);
-//
-//		hash_d = CryptoFunctions.encrypt_data_symmetric(hash_d, MASTER_KEY);
-//		hash_u = CryptoFunctions.encrypt_data_symmetric(hash_u, MASTER_KEY);
+
+		// s_domain = CryptoFunctions.encrypt_data_symmetric(s_domain,
+		// MASTER_KEY);
+		// s_username = CryptoFunctions.encrypt_data_symmetric(s_username,
+		// MASTER_KEY);
+		//
+		// hash_d = CryptoFunctions.encrypt_data_symmetric(hash_d, MASTER_KEY);
+		// hash_u = CryptoFunctions.encrypt_data_symmetric(hash_u, MASTER_KEY);
 
 		// Get the public key to send!!!
 		byte[] rowPassword = clientconn.get(serialize_pk, s_pubKey, hash_d, s_domain, hash_u, s_username);
 
 		byte[] password = CryptoFunctions.decrypt_data_symmetric(rowPassword, sessionKey);
-//		byte[] password = CryptoFunctions.decrypt_data_symmetric(rowPassword, MASTER_KEY);
+		// byte[] password = CryptoFunctions.decrypt_data_symmetric(rowPassword,
+		// MASTER_KEY);
 		byte[] p2 = CryptoFunctions.decrypt_data_asymmetric(password, privk);
 		String a = new String(p2);
 		return p2;
