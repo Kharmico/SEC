@@ -273,6 +273,7 @@ public class Server {
 			byte[] password = manager.get(k, domain, username);
 
 			byte[] pw = CryptoFunctions.encrypt_data_symmetric(password, sessionKey);
+			//
 
 			return Response.ok(pw).build();
 		} catch (Exception e1) {
