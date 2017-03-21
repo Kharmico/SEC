@@ -117,7 +117,9 @@ public class Manager  {
 //	    X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(clientPk);
 //	    KeyFactory keyFact = KeyFactory.getInstance("DH");
 //	    publicKey = keyFact.generatePublic(x509KeySpec);
-
+	    byte[] aux= Base64.getEncoder().encode(clientPk.getEncoded());
+		 aux= clientPk.getEncoded();
+	    System.out.println("DH PUBKEY CLIENT "+ new String(Base64.getEncoder().encode(clientPk.getEncoded())));
 	    // Prepare to generate the secret key with the private key and public key of the other party
 	    KeyAgreement ka = KeyAgreement.getInstance("DH");
 	    ka.init(privateKey);
@@ -126,7 +128,7 @@ public class Manager  {
 	    // Specify the type of key to generate;
 	    // see Listing All Available Symmetric Key Generators
 	    String algorithm = "DES";
-
+	  
 	    // Generate the secret key
 	    SecretKey secretKey = ka.generateSecret(algorithm);
 	    

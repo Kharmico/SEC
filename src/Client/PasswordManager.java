@@ -10,6 +10,7 @@ import java.security.InvalidKeyException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.SignatureException;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
@@ -37,8 +38,9 @@ public interface PasswordManager {
 	 * @throws InvalidKeySpecException 
 	 * @throws InvalidKeySpecException
 	 * @throws InvalidAlgorithmParameterException 
+	 * @throws NoSuchProviderException 
 	 */
-	void init(KeyStore ks, char[] ksPassword) throws NoSuchAlgorithmException, ClassNotFoundException, IOException, InvalidKeyException, UnrecoverableEntryException, KeyStoreException, SignatureException, InvalidKeySpecException, InvalidAlgorithmParameterException;
+	void init(KeyStore ks, char[] ksPassword) throws NoSuchAlgorithmException, ClassNotFoundException, IOException, InvalidKeyException, UnrecoverableEntryException, KeyStoreException, SignatureException, InvalidKeySpecException, InvalidAlgorithmParameterException, NoSuchProviderException;
 	
 	/**
 	 * @throws RemoteException 
