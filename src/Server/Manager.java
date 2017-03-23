@@ -69,11 +69,8 @@ public class Manager {
 
 	int bitLength = 1024;
 	SecureRandom rnd = new SecureRandom();
-	// BigInteger p = BigInteger.probablePrime(bitLength, rnd);
-	// BigInteger g = BigInteger.probablePrime(bitLength, rnd);
 
 	private KeyStore ks;
-	// private KeyStoreFunc keyStore;
 	private Map<ByteArrayWrapper, User> users;
 	private PasswordProtection ksPassword;
 	private Map<ByteArrayWrapper, Key> sessionKeys;
@@ -86,7 +83,11 @@ public class Manager {
 
 	public Manager(char[] ksPassword) throws Exception {
 		this.serverImpl(ksPassword);
-		// loadKeyStore(KS_PAHT);
+		this.ksPassword = new PasswordProtection(ksPassword);
+		this.ks = KeyStoreFunc.loadKeyStore(KS_PATH, ksPassword, SERVER_PAIR_ALIAS);
+	}
+	public Manager(String file, char[] ksPassword) throws Exception {
+		this.serverImpl(ksPassword);
 		this.ksPassword = new PasswordProtection(ksPassword);
 		this.ks = KeyStoreFunc.loadKeyStore(KS_PATH, ksPassword, SERVER_PAIR_ALIAS);
 	}
@@ -103,16 +104,6 @@ public class Manager {
 		// Get the generated public and private keys
 		Key privateKey = keypair.getPrivate();
 		Key publicKey = keypair.getPublic();
-
-		// Send the public key bytes to the other party...
-		// byte[] publicKeyBytes = publicKey.getEncoded();
-
-		// Retrieve the public key bytes of the other party
-
-		// Convert the public key bytes into a PublicKey object
-		// X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(clientPk);
-		// KeyFactory keyFact = KeyFactory.getInstance("DH");
-		// publicKey = keyFact.generatePublic(x509KeySpec);
 		
 		System.out.println("DH PUBKEY CLIENT " + new String(Base64.getEncoder().encode(dhPk.getEncoded())));
 		// Prepare to generate the secret key with the private key and public
@@ -130,26 +121,11 @@ public class Manager {
 		ByteArrayWrapper aux=new ByteArrayWrapper(Base64.getEncoder().encode(pk.getEncoded()));
 		sessionKeys.put(aux, secretKey);
 		return publicKey;
-
-		// KeyAgreement ka = KeyAgreement.getInstance("DH");
-		// ka.init(KeyStoreFunc.getPrivateKey(ks, SERVER_PAIR_ALIAS,
-		// this.ksPassword));
-		// ka.doPhase(clientPk, true);
-		// byte[] secrectKey= ka.generateSecret();
-		// Key sessionKey = new SecretKeySpec(secrectKey, "AES");
-		// sessionKeys.put(clientPk, sessionKey);
 	}
 
 	protected Key getSessionKey(PublicKey clientPk) {
 		ByteArrayWrapper aux=new ByteArrayWrapper(Base64.getEncoder().encode(clientPk.getEncoded()));
 		return this.sessionKeys.get(aux);
-	}
-
-	public Manager(String file, char[] ksPassword) throws Exception {
-		this.serverImpl(ksPassword);
-		// loadKeyStore(file);
-		this.ksPassword = new PasswordProtection(ksPassword);
-		this.ks = KeyStoreFunc.loadKeyStore(KS_PATH, ksPassword, SERVER_PAIR_ALIAS);
 	}
 
 	public void register(Key publicKey) throws UserAlreadyRegisteredException {
@@ -201,11 +177,6 @@ public class Manager {
 	 * fis.close(); } } }
 	 */
 	// ---------------OLD FINITO-------------------------/
-
-	// public boolean hasKs() {
-	// //return this.ks != null;
-	// return this.keyStore != null;
-	// }
 
 	public void writeUsersFiles(SecretKey key)
 			throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException,
