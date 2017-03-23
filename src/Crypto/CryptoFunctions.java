@@ -16,6 +16,7 @@ import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.util.Base64;
@@ -34,10 +35,11 @@ import java.security.PrivateKey;
 public class CryptoFunctions {
 	private static final String ASSYM_K_GEN_ALG = "RSA";
 	private static final int ASSYM_K_GEN_BYTES = 2048;
-	static byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    static IvParameterSpec ivspec = new IvParameterSpec(iv);
+	private static final int IV_SIZE = 16;
+//	static byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+//    static IvParameterSpec ivspec = new IvParameterSpec(iv);
     
-    public static void setJcePolicy(){
+  /*  public static void setJcePolicy(){
     	try { 
     		Field field = Class.forName("javax.crypto.JceSecurity").
     		getDeclaredField("isRestricted");
@@ -47,18 +49,27 @@ public class CryptoFunctions {
     		ex.printStackTrace();
     		}
     }
-	
+	*/
 	public static byte[] decrypt_data_symmetric(byte[] encData,Key k)
 	        throws NoSuchAlgorithmException, NoSuchPaddingException,
 	        InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
-	    
-		byte[] aux = Base64.getDecoder().decode(encData);
+	    byte[] iv = new byte[IV_SIZE];
+	    byte[] encryptedText;
+	    IvParameterSpec ivspec;
+		
+		byte[] encryptedIVAndText = Base64.getDecoder().decode(encData);
+		int cipheredSize = encryptedIVAndText.length - IV_SIZE;
+		encryptedText = new byte[cipheredSize];
+		System.arraycopy(encryptedIVAndText, 0, iv, 0, IV_SIZE);
+		ivspec = new IvParameterSpec(iv);
+		
+		System.arraycopy(encryptedIVAndText, IV_SIZE, encryptedText, 0, cipheredSize);
 		
 	    Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
 	    cipher.init(Cipher.DECRYPT_MODE, k,ivspec);
 
 	    //System.out.println("Base64 decoded: "+ Base64.getDecoder().decode(encData.getBytes()).length);
-	    return cipher.doFinal(aux);
+	    return cipher.doFinal(encryptedText);
 //	    return new String(original).trim();
 	}
 	
@@ -76,12 +87,26 @@ public class CryptoFunctions {
 	}
 	
 	public static byte[] encrypt_data_symmetric(byte[] data,Key k) throws Exception {
+		byte[] iv = new byte[IV_SIZE];
+		IvParameterSpec ivspec;
+		SecureRandom randomer = new SecureRandom();
+		
+		randomer.nextBytes(iv);
+		ivspec = new IvParameterSpec(iv);
+		
 	    Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
 	    cipher.init(Cipher.ENCRYPT_MODE, k,ivspec);
 	    System.out.println("Base64 encoded: "+ Base64.getEncoder().encode(data).length);
 
-	    return Base64.getEncoder().encode(cipher.doFinal(data));
+	    byte[] ciphered = cipher.doFinal(data);
 	    
+	//    Base64.getEncoder().encode();
+	    
+	    byte[] encryptedIVAndText = new byte[IV_SIZE + ciphered.length];
+	    System.arraycopy(iv, 0, encryptedIVAndText, 0, IV_SIZE);
+	    System.arraycopy(ciphered, 0, encryptedIVAndText, IV_SIZE, ciphered.length);
+	    
+	    return Base64.getEncoder().encode(encryptedIVAndText);
 	}
 	
 	public static byte[] encrypt_data_asymmetric(byte[] data,Key k) throws Exception {

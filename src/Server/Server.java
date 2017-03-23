@@ -76,7 +76,7 @@ public class Server {
 			manager = args.length > 1 ? new Manager(args[1], args[0].toCharArray())
 					: new Manager(args[0].toCharArray());
 		}
-		CryptoFunctions.setJcePolicy();
+		//CryptoFunctions.setJcePolicy();
 		// InetAddress s = localhostAddress();
 		// String myUrl = String.format("http://%s:%s/",
 		// s.getCanonicalHostName(), PORT);

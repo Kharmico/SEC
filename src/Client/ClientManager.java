@@ -65,7 +65,7 @@ public class ClientManager implements PasswordManager {
 		this.ks = ks;
 		this.ksPassword = new PasswordProtection(ksPassword);
 		clientconn = new ClientConnections();
-		CryptoFunctions.setJcePolicy();
+	//	CryptoFunctions.setJcePolicy();
 		
 		// diffie-helman
 		KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH");
