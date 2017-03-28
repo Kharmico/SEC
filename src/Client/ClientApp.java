@@ -87,8 +87,11 @@ public class ClientApp {
 							+ "The correct usage is retrieve_password <domain> <username>");
 					break;
 				case "close":
-					if(tokens.length == 1)
+					if(tokens.length == 1){
 						cman.close();
+						readIns.close();
+						System.exit(0);
+					}
 					else System.out.println("Wrong usage of the instruction.\n"
 							+ "The correct usage is close");
 					break;
@@ -96,5 +99,6 @@ public class ClientApp {
 					System.out.println("The instruction you've typed does not exist! Please try again.");
 			}		
 		}
+		
 	}
 }

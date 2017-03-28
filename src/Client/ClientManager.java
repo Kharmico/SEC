@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.Key;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -35,17 +36,20 @@ import javax.security.auth.DestroyFailedException;
 //Class com cryptografica
 public class ClientManager implements PasswordManager {
 
-	private KeyStore ks = null;
-	// private static final String KEY_ALIAS = "serversec";
 	private static final String SERVER_CERT_ALIAS = "servercert";
-	private static SecretKey sessionKey;
 	private static final String CLIENT_PAIR_ALIAS = "clientPair";
+	private static final String CERT_PATH = System.getProperty("user.dir") + "\\Resources\\serversec.cer";
+
+	private KeyStore ks = null;
+	// private static final String KEY_ALIAS = "serversec";	
+	private static SecretKey sessionKey;
 	ClientConnections clientconn = null;
 	PasswordProtection ksPassword = null;
 	int bitLength = 1024;
 	SecureRandom rnd = new SecureRandom();
 	BigInteger p = BigInteger.probablePrime(bitLength, rnd);
 	BigInteger g = BigInteger.probablePrime(bitLength, rnd);
+	private Key serverPubKey;
 
 
 	/*
@@ -59,14 +63,13 @@ public class ClientManager implements PasswordManager {
 	 * is called.
 	 */
 	@Override
-	public void init(KeyStore ks, char[] ksPassword) throws NoSuchAlgorithmException, ClassNotFoundException,
-			IOException, UnrecoverableEntryException, KeyStoreException, SignatureException, InvalidKeySpecException,
-			InvalidAlgorithmParameterException, InvalidKeyException, NoSuchProviderException {
+	public void init(KeyStore ks, char[] ksPassword) throws Exception {
 		this.ks = ks;
 		this.ksPassword = new PasswordProtection(ksPassword);
 		clientconn = new ClientConnections();
 	//	CryptoFunctions.setJcePolicy();
-		
+		// serverPubKey = KeyStoreFunc.getPublicKey(ks, SERVER_CERT_ALIAS);
+		serverPubKey = KeyStoreFunc.getPublicKeyCertificate(CERT_PATH);
 		// diffie-helman
 		KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH");
 		DHParameterSpec dhSpec = new DHParameterSpec(p, g);
@@ -76,16 +79,46 @@ public class ClientManager implements PasswordManager {
 		// Get the generated public and private keys
 		PrivateKey dhPrivateKey = (DHPrivateKey) keypair.getPrivate();
 		PublicKey dhPublicKey = (DHPublicKey) keypair.getPublic();
-		
+
 		// Send the public key bytes to the other party...
 		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, CLIENT_PAIR_ALIAS);
 		PrivateKey privk = KeyStoreFunc.getPrivateKey(ks, CLIENT_PAIR_ALIAS, this.ksPassword);
-		String serialize_pk = CryptoFunctions.serialize(pubk);
-		byte[] signature = CryptoFunctions.sign_data(serialize_pk.getBytes(), privk);
-		// Retrieve the public key bytes of the other party
-		// Send the public key bytes to the other party...
-		byte[] clientPk = Base64.getDecoder().decode(clientconn.init(serialize_pk, signature,
-				CryptoFunctions.serialize(dhPublicKey), CryptoFunctions.serialize(g), CryptoFunctions.serialize(p)));
+
+		Key fKey = CryptoFunctions.genKey();
+
+		String serialized_pk = CryptoFunctions.serialize(pubk);
+		String serialized_g = CryptoFunctions.serialize(g);
+		String serialized_p = CryptoFunctions.serialize(p);
+//		String serialized_dhpk = Base64.getEncoder().encodeToString(dhPublicKey.getEncoded());
+		String serialized_dhpk = CryptoFunctions.serialize(dhPublicKey);
+		String serialized_fKey = CryptoFunctions.serialize(fKey);
+
+		// signe data
+
+		byte[] signature_pk = CryptoFunctions.sign_data(serialized_pk.getBytes(), privk);
+		byte[] signature_g = CryptoFunctions.sign_data(serialized_g.getBytes(), privk);
+		byte[] signature_p = CryptoFunctions.sign_data(serialized_p.getBytes(), privk);
+		byte[] signature_dhpk = CryptoFunctions.sign_data(serialized_dhpk.getBytes(), privk);
+		byte[] signature_fKey = CryptoFunctions.sign_data(serialized_fKey.getBytes(), privk);
+
+		// Key serverPubKey = this.ks.getKey(SERVER_CERT_ALIAS, ksPassword);
+
+		// encrypt data
+		serialized_pk = new String(CryptoFunctions.encrypt_data_symmetric(serialized_pk.getBytes(), fKey));
+		serialized_g = new String(CryptoFunctions.encrypt_data_symmetric(serialized_g.getBytes(), fKey));
+		serialized_p = new String(CryptoFunctions.encrypt_data_symmetric(serialized_p.getBytes(), fKey));
+		serialized_dhpk = new String(CryptoFunctions.encrypt_data_symmetric(serialized_dhpk.getBytes(), fKey));
+
+		serialized_fKey = new String(CryptoFunctions.encrypt_data_asymmetric(serialized_fKey.getBytes(), serverPubKey));
+
+		signature_pk = CryptoFunctions.encrypt_data_symmetric(signature_pk, fKey);
+		signature_g = CryptoFunctions.encrypt_data_symmetric(signature_g, fKey);
+		signature_p = CryptoFunctions.encrypt_data_symmetric(signature_p, fKey);
+		signature_dhpk = CryptoFunctions.encrypt_data_symmetric(signature_dhpk, fKey);
+		signature_fKey = CryptoFunctions.encrypt_data_symmetric(signature_fKey, fKey);
+
+		byte[] clientPk = Base64.getDecoder().decode(clientconn.init(serialized_pk, signature_pk, serialized_dhpk,
+				signature_dhpk, serialized_g, signature_g, serialized_p, signature_p, serialized_fKey, signature_fKey));
 
 		// Convert the public key bytes into a PublicKey object
 		X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(clientPk);

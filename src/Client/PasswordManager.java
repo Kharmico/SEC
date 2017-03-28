@@ -39,8 +39,9 @@ public interface PasswordManager {
 	 * @throws InvalidKeySpecException
 	 * @throws InvalidAlgorithmParameterException 
 	 * @throws NoSuchProviderException 
+	 * @throws Exception 
 	 */
-	void init(KeyStore ks, char[] ksPassword) throws NoSuchAlgorithmException, ClassNotFoundException, IOException, InvalidKeyException, UnrecoverableEntryException, KeyStoreException, SignatureException, InvalidKeySpecException, InvalidAlgorithmParameterException, NoSuchProviderException;
+	void init(KeyStore ks, char[] ksPassword) throws NoSuchAlgorithmException, ClassNotFoundException, IOException, InvalidKeyException, UnrecoverableEntryException, KeyStoreException, SignatureException, InvalidKeySpecException, InvalidAlgorithmParameterException, NoSuchProviderException, Exception;
 	
 	/**
 	 * @throws RemoteException 

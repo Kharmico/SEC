@@ -33,8 +33,6 @@ public final class ClientConnections {
 	public static final String SERVER_URL = "http://localhost:9000";
 	public static final int OK = 200;
 	public static final int BAD_REQUEST = 400;
-	
-	
 
 	private WebTarget target;
 	private Client client;
@@ -43,22 +41,34 @@ public final class ClientConnections {
 		ClientConfig config = new ClientConfig();
 		client = ClientBuilder.newClient(config);
 		target = client.target(UriBuilder.fromUri(SERVER_URL).build());
-		
+
 	}
+
 	@SuppressWarnings("unchecked")
-	public byte[] init(String pubKey, byte[] signature_pubKey,String dfhPubKey, String g,String p) throws ConectionFailedException, ClassNotFoundException, IOException {
+	public byte[] init(String pubKey, byte[] signature_pubKey, String dfhPubKey, byte[] signature_dfhPubKey, String g,
+			byte[] signed_g, String p, byte[] signed_p, String symmetricKey, byte[] signed_symmetricKey)
+			throws ConectionFailedException, ClassNotFoundException, IOException {
 		JSONObject j = new JSONObject();
 		j.put("pubKey", pubKey);
 		j.put("pubKeySignature", new String(signature_pubKey));
 		j.put("dfhPubKey", dfhPubKey);
+		j.put("dfhPubKeySignature", new String(signature_dfhPubKey));
 		j.put("g", g);
+		j.put("gSignature", new String(signed_g));
 		j.put("p", p);
+		j.put("pSignature", new String(signed_p));
+		j.put("symmetricKey", symmetricKey);
+		j.put("symmetricKeySignature", new String(signed_symmetricKey));
+		
+		
 		String json = URLEncoder.encode(j.toJSONString(), "UTF-8");
 
 		WebTarget target = this.target.path(String.format("/Server/Init/%s/", json));
-		return  target.request().accept(MediaType.APPLICATION_JSON).get(byte[].class);
-		
-	}	@SuppressWarnings("unchecked")
+		return target.request().accept(MediaType.APPLICATION_JSON).get(byte[].class);
+
+	}
+
+	@SuppressWarnings("unchecked")
 	public void register(String pubKey, byte[] signature_pubKey) throws ConectionFailedException {
 		JSONObject j = new JSONObject();
 		j.put("pubKey", pubKey);

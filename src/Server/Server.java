@@ -100,18 +100,44 @@ public class Server {
 		JSONObject json;
 		try {
 			json = getJason(param);
-
-			String pubKey = (String) json.get("pubKey");
-			byte[] signature_pubKey = ((String) json.get("pubKeySignature")).getBytes();
-			Key dfhClient = (Key) CryptoFunctions.desSerialize(((String) json.get("dfhPubKey")));
-			BigInteger g = (((BigInteger) CryptoFunctions.desSerialize((String) json.get("g"))));
-			BigInteger p = (((BigInteger) CryptoFunctions.desSerialize((String) json.get("p"))));
-
-			Key k = (Key) CryptoFunctions.desSerialize(pubKey);
-			if (!CryptoFunctions.verifySignature(pubKey.getBytes(), signature_pubKey, (PublicKey) k)) {
+			Key serverPrivKey = manager.getServerPrivateKey();
+			String encriptedFKey=((String) json.get("symmetricKey"));
+			String serializedFKey=new String(CryptoFunctions.decrypt_data_asymmetric(encriptedFKey.getBytes(), serverPrivKey));
+			
+			Key fKey=(Key) CryptoFunctions.desSerialize(serializedFKey);
+			byte[] signature_fKey = CryptoFunctions
+					.decrypt_data_symmetric(((String) json.get("symmetricKeySignature")).getBytes(), fKey);
+			String pubKey = new String(CryptoFunctions.decrypt_data_symmetric(((String) json.get("pubKey")).getBytes(), fKey));
+			byte[] signature_pubKey = CryptoFunctions
+					.decrypt_data_symmetric(((String) json.get("pubKeySignature")).getBytes(), fKey);
+			Key pkClient = (Key) CryptoFunctions.desSerialize(pubKey);
+			if (!CryptoFunctions.verifySignature(pubKey.getBytes(), signature_pubKey, (PublicKey) pkClient)) {
 				return Response.status(400).build();
 			}
-			Key pk = manager.init(k, dfhClient, g, p);
+			if (!CryptoFunctions.verifySignature(serializedFKey.getBytes(), signature_fKey, (PublicKey) pkClient)) {
+				return Response.status(400).build();
+			}	
+			
+			String serialized_dfhClient=new String(CryptoFunctions.decrypt_data_symmetric(((String) json.get("dfhPubKey")).getBytes(), fKey));
+			byte[] signature_dfhClient = CryptoFunctions.decrypt_data_symmetric(((String) json.get("dfhPubKeySignature")).getBytes(), fKey);
+			Key dfhClient = (Key) CryptoFunctions.desSerialize(serialized_dfhClient);
+			if (!CryptoFunctions.verifySignature(serialized_dfhClient.getBytes(), signature_dfhClient, (PublicKey) pkClient)) {
+				return Response.status(400).build();
+			}
+			String serialized_g=new String(CryptoFunctions.decrypt_data_symmetric(((String) json.get("g")).getBytes(), fKey));
+			byte[] signature_g =CryptoFunctions.decrypt_data_symmetric(((String) json.get("gSignature")).getBytes(), fKey);
+			BigInteger g = (BigInteger) CryptoFunctions.desSerialize(serialized_g);
+			if (!CryptoFunctions.verifySignature(serialized_g.getBytes(), signature_g, (PublicKey) pkClient)) {
+				return Response.status(400).build();
+			}		
+			String serialized_p=new String(CryptoFunctions.decrypt_data_symmetric(((String) json.get("p")).getBytes(), fKey));
+			byte[] signature_p =CryptoFunctions.decrypt_data_symmetric(((String) json.get("pSignature")).getBytes(), fKey);
+			BigInteger p = (BigInteger) CryptoFunctions.desSerialize(serialized_p);
+			if (!CryptoFunctions.verifySignature(serialized_p.getBytes(), signature_p, (PublicKey) pkClient)) {
+				return Response.status(400).build();
+			}	
+			
+			Key pk = manager.init(pkClient, dfhClient, g, p);
 
 			System.out.println("Register ok");
 			return Response.ok(Base64.getEncoder().encode(pk.getEncoded())).build();

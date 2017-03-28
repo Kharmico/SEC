@@ -39,7 +39,7 @@ public class CryptoFunctions {
 //	static byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 //    static IvParameterSpec ivspec = new IvParameterSpec(iv);
     
-  /*  public static void setJcePolicy(){
+    public static void setJcePolicy(){
     	try { 
     		Field field = Class.forName("javax.crypto.JceSecurity").
     		getDeclaredField("isRestricted");
@@ -49,7 +49,7 @@ public class CryptoFunctions {
     		ex.printStackTrace();
     		}
     }
-	*/
+	
 	public static byte[] decrypt_data_symmetric(byte[] encData,Key k)
 	        throws NoSuchAlgorithmException, NoSuchPaddingException,
 	        InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
