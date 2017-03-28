@@ -34,6 +34,8 @@ import java.security.KeyStore.PasswordProtection;
 import java.util.Base64;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -71,13 +73,13 @@ public class Manager {
 	SecureRandom rnd = new SecureRandom();
 
 	private KeyStore ks;
-	private Map<ByteArrayWrapper, User> users;
+	private ConcurrentMap<ByteArrayWrapper, User> users;
 	private PasswordProtection ksPassword;
-	private Map<ByteArrayWrapper, Key> sessionKeys;
+	private ConcurrentMap<ByteArrayWrapper, Key> sessionKeys;
 
 	private void serverImpl(char[] password) throws ClassNotFoundException, IOException {
-		this.users = new Hashtable<ByteArrayWrapper, User>();
-		this.sessionKeys = new Hashtable<ByteArrayWrapper, Key>();
+		this.users = new ConcurrentHashMap<ByteArrayWrapper, User>();
+		this.sessionKeys = new ConcurrentHashMap<ByteArrayWrapper, Key>();
 
 	}
 
@@ -213,7 +215,7 @@ public class Manager {
 
 	public void readUsersFile(SecretKey key) throws NoSuchAlgorithmException, NoSuchPaddingException,
 			IllegalBlockSizeException, BadPaddingException, InvalidKeyException, ClassNotFoundException {
-		Map<ByteArrayWrapper, User> users = null;
+		ConcurrentMap<ByteArrayWrapper, User> users = null;
 		try {
 			Path path = Paths.get(USERS_FILE);
 			byte[] ciphertext = Files.readAllBytes(path);
@@ -226,10 +228,10 @@ public class Manager {
 			ByteArrayInputStream in = new ByteArrayInputStream(cleartext);
 
 			ObjectInputStream is = new ObjectInputStream(in);
-			users = (Hashtable<ByteArrayWrapper, User>) is.readObject();
+			users = (ConcurrentHashMap<ByteArrayWrapper, User>) is.readObject();
 			in.close();
 		} catch (IOException i) {
-			users = new Hashtable<ByteArrayWrapper, User>();
+			users = new ConcurrentHashMap<ByteArrayWrapper, User>();
 		} finally {
 			this.users = users;
 		}
