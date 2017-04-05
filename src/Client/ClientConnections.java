@@ -59,7 +59,9 @@ public final class ClientConnections {
 		j.put("pSignature", new String(signed_p));
 		j.put("symmetricKey", symmetricKey);
 		j.put("symmetricKeySignature", new String(signed_symmetricKey));
-		
+		//nonce
+		//j.put("nonce", new String(nonce));
+		//j.put("nonceSignature", new String(signature_nonce));
 		
 		String json = URLEncoder.encode(j.toJSONString(), "UTF-8");
 
@@ -69,10 +71,13 @@ public final class ClientConnections {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void register(String pubKey, byte[] signature_pubKey) throws ConectionFailedException {
+	public void register(String pubKey, byte[] signature_pubKey, byte[] nonce, byte[] signature_nonce) throws ConectionFailedException {
 		JSONObject j = new JSONObject();
 		j.put("pubKey", pubKey);
 		j.put("pubKeySignature", new String(signature_pubKey));
+		//nonce
+		j.put("nonce", new String(nonce));
+		j.put("nonceSignature", new String(signature_nonce));
 		WebTarget target = this.target.path(String.format("/Server/Register"));
 		Response response = target.request().accept(MediaType.APPLICATION_JSON)
 				.post(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
@@ -82,7 +87,7 @@ public final class ClientConnections {
 
 	@SuppressWarnings("unchecked")
 	public void put(String pubKey, byte[] signature_pubKey, byte[] domain, byte[] signature_domain, byte[] username,
-			byte[] signature_username, byte[] password, byte[] signature_password) {
+			byte[] signature_username, byte[] password, byte[] signature_password, byte[] nonce, byte[] signature_nonce) {
 		JSONObject j = new JSONObject();
 		j.put("pubKey", pubKey);
 		j.put("pubKeySignature", new String(signature_pubKey));
@@ -92,6 +97,9 @@ public final class ClientConnections {
 		j.put("usernameSignature", new String(signature_username));
 		j.put("password", new String(password));
 		j.put("passwordSignature", new String(signature_password));
+		//nonce
+		j.put("nonce", new String(nonce));
+		j.put("nonceSignature", new String(signature_nonce));
 		WebTarget target = this.target.path(String.format("/Server/Put"));
 		Response response = target.request().accept(MediaType.APPLICATION_JSON)
 				.post(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
@@ -100,7 +108,7 @@ public final class ClientConnections {
 
 	@SuppressWarnings("unchecked")
 	public byte[] get(String pubKey, byte[] signature_pubKey, byte[] domain, byte[] signature_domain, byte[] username,
-			byte[] signature_username) throws UnsupportedEncodingException {
+			byte[] signature_username, byte[] nonce, byte[] signature_nonce) throws UnsupportedEncodingException {
 		System.out.println("domain no client " + domain);
 		JSONObject j = new JSONObject();
 		j.put("pubKey", pubKey);
@@ -109,6 +117,9 @@ public final class ClientConnections {
 		j.put("domainSignature", new String(signature_domain));
 		j.put("username", new String(username));
 		j.put("usernameSignature", new String(signature_username));
+		//nonce
+		j.put("nonce", new String(nonce));
+		j.put("nonceSignature", new String(signature_nonce));
 		String json = URLEncoder.encode(j.toJSONString(), "UTF-8");
 		WebTarget target = this.target.path(String.format("/Server/Get/%s/", json));
 		byte[] response = target.request().accept(MediaType.APPLICATION_JSON).get(byte[].class);

@@ -20,6 +20,7 @@ import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.util.Base64;
+import java.util.Date;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -204,6 +205,12 @@ public class CryptoFunctions {
 		KeyPairGenerator gen = KeyPairGenerator.getInstance(ASSYM_K_GEN_ALG);
 		gen.initialize(ASSYM_K_GEN_BYTES);
 		return gen.generateKeyPair();
+	}
+	
+	//generate nonce
+	public static byte[] generateNonce(){
+		String dateTime = Long.toString(new Date().getTime());
+		return dateTime.getBytes();
 	}
 	
 	

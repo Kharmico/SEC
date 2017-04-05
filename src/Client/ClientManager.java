@@ -64,6 +64,7 @@ public class ClientManager implements PasswordManager {
 	 */
 	@Override
 	public void init(KeyStore ks, char[] ksPassword) throws Exception {
+		//DOES INIT NEED FRESHNESS??? I THINK NOT CAUSE NO RELEVANT DATA IS EXHANGED ASK PROF
 		this.ks = ks;
 		this.ksPassword = new PasswordProtection(ksPassword);
 		clientconn = new ClientConnections();
@@ -142,14 +143,18 @@ public class ClientManager implements PasswordManager {
 	 */
 	@Override
 	public void register_user() throws Exception {
-
+		
+		byte[] nonce = CryptoFunctions.generateNonce();
 		// Get the public key to send!!!
 		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, CLIENT_PAIR_ALIAS);
 		PrivateKey privk = KeyStoreFunc.getPrivateKey(ks, CLIENT_PAIR_ALIAS, ksPassword);
 		String serialize_pk = CryptoFunctions.serialize(pubk);
 		byte[] signature = CryptoFunctions.sign_data(serialize_pk.getBytes(), privk);
-
-		clientconn.register(serialize_pk, signature);
+		//nonce
+		byte[] hash_nonce = CryptoFunctions.getHashMessage(nonce);
+		//sign nonce
+		byte[] s_nonce = CryptoFunctions.sign_data(hash_nonce, privk);
+		clientconn.register(serialize_pk, signature, hash_nonce, s_nonce);
 
 	}
 
@@ -160,7 +165,8 @@ public class ClientManager implements PasswordManager {
 	 */
 	@Override
 	public void save_password(byte[] domain, byte[] username, byte[] password) throws Exception {
-
+		
+		byte[] nonce = CryptoFunctions.generateNonce();
 		// Get the public key to send!!!
 		PrivateKey privk = KeyStoreFunc.getPrivateKey(ks, CLIENT_PAIR_ALIAS, ksPassword);
 		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, CLIENT_PAIR_ALIAS);
@@ -175,12 +181,16 @@ public class ClientManager implements PasswordManager {
 
 		byte[] hash_d = CryptoFunctions.getHashMessage(domain);
 		byte[] hash_u = CryptoFunctions.getHashMessage(username);
-
+		//nonce
+		byte[] hash_nonce = CryptoFunctions.getHashMessage(nonce);
+		
 		byte[] s_pubKey = CryptoFunctions.sign_data(serialize_pk.getBytes(), privk);
 		byte[] s_domain = CryptoFunctions.sign_data(hash_d, privk);
 		byte[] s_username = CryptoFunctions.sign_data(hash_u, privk);
 		byte[] s_password = CryptoFunctions.sign_data(cypher_p, privk);
-
+		//sign nonce
+		byte[] s_nonce = CryptoFunctions.sign_data(hash_nonce, privk);
+		
 		s_domain = CryptoFunctions.encrypt_data_symmetric(s_domain, sessionKey);
 		s_username = CryptoFunctions.encrypt_data_symmetric(s_username, sessionKey);
 		s_password = CryptoFunctions.encrypt_data_symmetric(s_password, sessionKey);
@@ -188,7 +198,7 @@ public class ClientManager implements PasswordManager {
 		hash_u = CryptoFunctions.encrypt_data_symmetric(hash_u, sessionKey);
 		cypher_p = CryptoFunctions.encrypt_data_symmetric(cypher_p, sessionKey);
 
-		clientconn.put(serialize_pk, s_pubKey, hash_d, s_domain, hash_u, s_username, cypher_p, s_password);
+		clientconn.put(serialize_pk, s_pubKey, hash_d, s_domain, hash_u, s_username, cypher_p, s_password, hash_nonce, s_nonce);
 	}
 
 	/*
@@ -199,24 +209,29 @@ public class ClientManager implements PasswordManager {
 	@Override
 	public byte[] retrieve_password(byte[] domain, byte[] username) throws Exception {
 
+		byte[] nonce = CryptoFunctions.generateNonce();
 		// Get the public key to send!!!
 		PrivateKey privk = KeyStoreFunc.getPrivateKey(ks, CLIENT_PAIR_ALIAS, ksPassword);
 		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, CLIENT_PAIR_ALIAS);
 		String serialize_pk = CryptoFunctions.serialize(pubk);
 		byte[] hash_d = CryptoFunctions.getHashMessage(domain);
 		byte[] hash_u = CryptoFunctions.getHashMessage(username);
-
+		//nonce
+		byte[] hash_nonce = CryptoFunctions.getHashMessage(nonce);
+		
 		byte[] s_pubKey = CryptoFunctions.sign_data(serialize_pk.getBytes(), privk);
 		byte[] s_domain = CryptoFunctions.sign_data(hash_d, privk);
 		byte[] s_username = CryptoFunctions.sign_data(hash_u, privk);
-
+		//sign nonce
+		byte[] s_nonce = CryptoFunctions.sign_data(hash_nonce, privk);
+		
 		s_domain = CryptoFunctions.encrypt_data_symmetric(s_domain, sessionKey);
 		s_username = CryptoFunctions.encrypt_data_symmetric(s_username, sessionKey);
 		hash_d = CryptoFunctions.encrypt_data_symmetric(hash_d, sessionKey);
 		hash_u = CryptoFunctions.encrypt_data_symmetric(hash_u, sessionKey);
-
+		hash_nonce = CryptoFunctions.encrypt_data_asymmetric(hash_nonce, sessionKey);
 		// Get the public key to send!!!
-		byte[] rowPassword = clientconn.get(serialize_pk, s_pubKey, hash_d, s_domain, hash_u, s_username);
+		byte[] rowPassword = clientconn.get(serialize_pk, s_pubKey, hash_d, s_domain, hash_u, s_username, hash_nonce, s_nonce);
 		byte[] password = CryptoFunctions.decrypt_data_symmetric(rowPassword, sessionKey);
 		byte[] p2 = CryptoFunctions.decrypt_data_asymmetric(password, privk);
 		String a = new String(p2);
