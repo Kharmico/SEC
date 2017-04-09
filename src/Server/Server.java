@@ -103,8 +103,11 @@ public class Server {
 			Key serverPrivKey = manager.getServerPrivateKey();
 			String encriptedFKey=((String) json.get("symmetricKey"));
 			String serializedFKey=new String(CryptoFunctions.decrypt_data_asymmetric(encriptedFKey.getBytes(), serverPrivKey));
-			
 			Key fKey=(Key) CryptoFunctions.desSerialize(serializedFKey);
+			//get nonce
+			byte[] hashed_nonce = CryptoFunctions.getHashMessage(((String) json.get("nonce")).getBytes());
+			byte[] signed_nonce = CryptoFunctions.getHashMessage(((String) json.get("signatureNonce")).getBytes());
+			
 			byte[] signature_fKey = CryptoFunctions
 					.decrypt_data_symmetric(((String) json.get("symmetricKeySignature")).getBytes(), fKey);
 			String pubKey = new String(CryptoFunctions.decrypt_data_symmetric(((String) json.get("pubKey")).getBytes(), fKey));
@@ -160,13 +163,22 @@ public class Server {
 		JSONObject json;
 		try {
 			json = getJason(param);
-
+			//get nonce
+			
+			
 			String pubKey = (String) json.get("pubKey");
 			byte[] signature_pubKey = ((String) json.get("pubKeySignature")).getBytes();
 			Key k = (Key) CryptoFunctions.desSerialize(pubKey);
 			if (!CryptoFunctions.verifySignature(pubKey.getBytes(), signature_pubKey, (PublicKey) k)) {
 				return Response.status(400).build();
 			}
+			byte[] hashed_nonce = CryptoFunctions.getHashMessage(((String) json.get("nonce")).getBytes());
+			byte[] signed_nonce = CryptoFunctions.getHashMessage(((String) json.get("signatureNonce")).getBytes());
+			if (!CryptoFunctions.verifySignature(pubKey.getBytes(), signed_nonce, (PublicKey) k))
+				return Response.status(400).build();
+				//.digest automatically makes the checksums
+			CryptoFunctions.getHashMessage(hashed_nonce);
+		
 			manager.register(k);
 
 			System.out.println("Register ok");
@@ -212,6 +224,13 @@ public class Server {
 					.decrypt_data_symmetric(((String) json.get("domainSignature")).getBytes(), sessionKey);
 			if (!CryptoFunctions.verifySignature(domain, signature_domain, (PublicKey) k))
 				return Response.status(400).build();
+			
+			byte[] hashed_nonce = CryptoFunctions.getHashMessage(((String) json.get("nonce")).getBytes());
+			byte[] signed_nonce = CryptoFunctions.getHashMessage(((String) json.get("signatureNonce")).getBytes());
+			if (!CryptoFunctions.verifySignature(pubKey.getBytes(), signed_nonce, (PublicKey) k))
+				return Response.status(400).build();
+				//.digest automatically makes the checksums
+			CryptoFunctions.getHashMessage(hashed_nonce);
 
 			byte[] password = CryptoFunctions.decrypt_data_symmetric(((String) json.get("password")).getBytes(),
 					sessionKey);
@@ -220,7 +239,7 @@ public class Server {
 					.decrypt_data_symmetric(((String) json.get("passwordSignature")).getBytes(), sessionKey);
 			if (!CryptoFunctions.verifySignature(password, signature_password, (PublicKey) k))
 				return Response.status(400).build();
-
+			
 			manager.put(k, domain, username, password);
 			return Response.status(200).build();
 		} catch (Exception e1) {
@@ -262,7 +281,14 @@ public class Server {
 					.decrypt_data_symmetric(((String) json.get("domainSignature")).getBytes(), sessionKey);
 			if (!CryptoFunctions.verifySignature(domain, signature_domain, (PublicKey) k))
 				return Response.status(400).build();
-
+			
+			byte[] hashed_nonce = CryptoFunctions.getHashMessage(((String) json.get("nonce")).getBytes());
+			byte[] signed_nonce = CryptoFunctions.getHashMessage(((String) json.get("signatureNonce")).getBytes());
+			if (!CryptoFunctions.verifySignature(pubKey.getBytes(), signed_nonce, (PublicKey) k))
+				return Response.status(400).build();
+				//.digest automatically makes the checksums
+			CryptoFunctions.getHashMessage(hashed_nonce);
+			
 			byte[] password = manager.get(k, domain, username);
 			byte[] pw = CryptoFunctions.encrypt_data_symmetric(password, sessionKey);
 
