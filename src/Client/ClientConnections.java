@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.security.Key;
+import java.util.Random;
 
 import javax.crypto.SecretKey;
 import javax.ws.rs.BadRequestException;
@@ -33,11 +34,14 @@ public final class ClientConnections {
 	public static final String SERVER_URL = "http://localhost:9000";
 	public static final int OK = 200;
 	public static final int BAD_REQUEST = 400;
+	//para teste usamos um vvalor random para identificar o dispositivo na pratica deveria ser um ip adress
+	
 
 	private WebTarget target;
 	private Client client;
 
 	public ClientConnections() {
+		
 		ClientConfig config = new ClientConfig();
 		client = ClientBuilder.newClient(config);
 		target = client.target(UriBuilder.fromUri(SERVER_URL).build());
@@ -46,7 +50,7 @@ public final class ClientConnections {
 
 	@SuppressWarnings("unchecked")
 	public byte[] init(String pubKey, byte[] signature_pubKey, String dfhPubKey, byte[] signature_dfhPubKey, String g,
-			byte[] signed_g, String p, byte[] signed_p, String symmetricKey, byte[] signed_symmetricKey)
+			byte[] signed_g, String p, byte[] signed_p, String symmetricKey, byte[] signed_symmetricKey,String deviceId,byte[] signed_deviceID)
 			throws ConectionFailedException, ClassNotFoundException, IOException {
 		JSONObject j = new JSONObject();
 		j.put("pubKey", pubKey);
@@ -59,6 +63,8 @@ public final class ClientConnections {
 		j.put("pSignature", new String(signed_p));
 		j.put("symmetricKey", symmetricKey);
 		j.put("symmetricKeySignature", new String(signed_symmetricKey));
+		j.put("deviceID", deviceId);
+		j.put("deviceIdSignature", new String(signed_deviceID));
 		//nonce
 		//j.put("nonce", new String(nonce));
 		//j.put("nonceSignature", new String(signature_nonce));
@@ -71,13 +77,17 @@ public final class ClientConnections {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void register(String pubKey, byte[] signature_pubKey, byte[] nonce, byte[] signature_nonce) throws ConectionFailedException {
+	public void register(String pubKey, byte[] signature_pubKey, byte[] nonce, byte[] signature_nonce,String deviceId,byte[] signed_deviceID) throws ConectionFailedException {
 		JSONObject j = new JSONObject();
 		j.put("pubKey", pubKey);
 		j.put("pubKeySignature", new String(signature_pubKey));
 		//nonce
 		j.put("nonce", new String(nonce));
 		j.put("nonceSignature", new String(signature_nonce));
+		//deviceID
+		j.put("deviceID", deviceId);
+		j.put("deviceIdSignature", new String (signed_deviceID));
+		
 		WebTarget target = this.target.path(String.format("/Server/Register"));
 		Response response = target.request().accept(MediaType.APPLICATION_JSON)
 				.post(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
@@ -87,7 +97,7 @@ public final class ClientConnections {
 
 	@SuppressWarnings("unchecked")
 	public void put(String pubKey, byte[] signature_pubKey, byte[] domain, byte[] signature_domain, byte[] username,
-			byte[] signature_username, byte[] password, byte[] signature_password, byte[] nonce, byte[] signature_nonce) {
+			byte[] signature_username, byte[] password, byte[] signature_password, byte[] nonce, byte[] signature_nonce,String deviceId,byte[] signed_deviceID) {
 		JSONObject j = new JSONObject();
 		j.put("pubKey", pubKey);
 		j.put("pubKeySignature", new String(signature_pubKey));
@@ -100,6 +110,10 @@ public final class ClientConnections {
 		//nonce
 		j.put("nonce", new String(nonce));
 		j.put("nonceSignature", new String(signature_nonce));
+		//deviceID
+		j.put("deviceID", deviceId);
+		j.put("deviceIdSignature",new String( signed_deviceID));
+		
 		WebTarget target = this.target.path(String.format("/Server/Put"));
 		Response response = target.request().accept(MediaType.APPLICATION_JSON)
 				.post(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
@@ -108,7 +122,7 @@ public final class ClientConnections {
 
 	@SuppressWarnings("unchecked")
 	public byte[] get(String pubKey, byte[] signature_pubKey, byte[] domain, byte[] signature_domain, byte[] username,
-			byte[] signature_username, byte[] nonce, byte[] signature_nonce) throws UnsupportedEncodingException {
+			byte[] signature_username, byte[] nonce, byte[] signature_nonce,String deviceId,byte[] signed_deviceID) throws UnsupportedEncodingException {
 		System.out.println("domain no client " + domain);
 		JSONObject j = new JSONObject();
 		j.put("pubKey", pubKey);
@@ -120,6 +134,10 @@ public final class ClientConnections {
 		//nonce
 		j.put("nonce", new String(nonce));
 		j.put("nonceSignature", new String(signature_nonce));
+		//deviceID
+		j.put("deviceID", deviceId);
+		j.put("deviceIdSignature",new String( signed_deviceID));
+		
 		String json = URLEncoder.encode(j.toJSONString(), "UTF-8");
 		WebTarget target = this.target.path(String.format("/Server/Get/%s/", json));
 		byte[] response = target.request().accept(MediaType.APPLICATION_JSON).get(byte[].class);

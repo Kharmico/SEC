@@ -10,5 +10,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="lib" path="C:/Users/paulo/Desktop/workspace2/SEC/lib/Jersey-bundle.jar"/>
 	<classpathentry kind="lib" path="C:/Users/paulo/Desktop/workspace2/SEC/lib/json-simple-1.1.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/paulo/Desktop/workspace2/SEC/lib/javax.servlet-3.0.0.v201112011016.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

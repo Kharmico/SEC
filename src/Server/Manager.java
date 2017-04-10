@@ -32,6 +32,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.security.KeyStore.PasswordProtection;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -75,11 +76,11 @@ public class Manager {
 	private KeyStore ks;
 	private ConcurrentMap<ByteArrayWrapper, User> users;
 	private PasswordProtection ksPassword;
-	private ConcurrentMap<ByteArrayWrapper, Key> sessionKeys;
+	private ConcurrentMap<ByteArrayWrapper, Map<String,Key>> sessionKeys;
 
 	private void serverImpl(char[] password) throws ClassNotFoundException, IOException {
 		this.users = new ConcurrentHashMap<ByteArrayWrapper, User>();
-		this.sessionKeys = new ConcurrentHashMap<ByteArrayWrapper, Key>();
+		this.sessionKeys = new ConcurrentHashMap<ByteArrayWrapper, Map<String,Key>>();
 
 	}
 
@@ -94,7 +95,7 @@ public class Manager {
 		this.ks = KeyStoreFunc.loadKeyStore(KS_PATH, ksPassword, SERVER_PAIR_ALIAS);
 	}
 
-	public Key init(Key pk, Key dhPk, BigInteger g, BigInteger p)
+	public Key init(Key pk, Key dhPk, BigInteger g, BigInteger p,String deviceId)
 			throws InvalidKeyException, IllegalStateException, NoSuchAlgorithmException, UnrecoverableEntryException,
 			KeyStoreException, InvalidKeySpecException, InvalidAlgorithmParameterException {
 		// Use the values to generate a key pair
@@ -115,19 +116,29 @@ public class Manager {
 		ka.doPhase(dhPk, true);
 
 		// Specify the type of key to generate;
-		// see Listing All Available Symmetric Key Generators
 		String algorithm = "AES";
 
 		// Generate the secret key
 		SecretKey secretKey = ka.generateSecret(algorithm);
-		ByteArrayWrapper aux=new ByteArrayWrapper(Base64.getEncoder().encode(pk.getEncoded()));
-		sessionKeys.put(aux, secretKey);
+		
+		insertSessionKey(pk,secretKey,deviceId);
+		
 		return publicKey;
 	}
+	
+	private void insertSessionKey(Key pubkey,SecretKey secretKey ,String deviceId){
+		ByteArrayWrapper aux=new ByteArrayWrapper(Base64.getEncoder().encode(pubkey.getEncoded()));
+		Map<String,Key> map= sessionKeys.get(aux);
+		if(map==null)
+			map=new HashMap<String,Key>();
+		map.put(deviceId, secretKey);
+		sessionKeys.put(aux, map);
+	}
 
-	protected Key getSessionKey(PublicKey clientPk) {
+	protected Key getSessionKey(PublicKey clientPk,String deviceId) {
 		ByteArrayWrapper aux=new ByteArrayWrapper(Base64.getEncoder().encode(clientPk.getEncoded()));
-		return this.sessionKeys.get(aux);
+		Map<String,Key> map= sessionKeys.get(aux);
+		return map.get(deviceId);	
 	}
 
 	public void register(Key publicKey) throws UserAlreadyRegisteredException {

@@ -25,6 +25,7 @@ import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+import java.util.Random;
 
 import javax.crypto.KeyAgreement;
 import javax.crypto.SecretKey;
@@ -49,9 +50,18 @@ public class ClientManager implements PasswordManager {
 	SecureRandom rnd = new SecureRandom();
 	BigInteger p = BigInteger.probablePrime(bitLength, rnd);
 	BigInteger g = BigInteger.probablePrime(bitLength, rnd);
+	private String deviceId;
 	private Key serverPubKey;
 
-
+public ClientManager(){
+	Random r = new Random();
+	int Low = 1;
+	int High = 100;
+	Integer result = r.nextInt(High-Low) + Low;
+	deviceId= new String(Base64.getEncoder().encode(result.toString().getBytes()));
+	clientconn = new ClientConnections();
+	CryptoFunctions.setJcePolicy();
+}
 	/*
 	 * Specification: initializes the library before its first use. This method
 	 * should receive a reference to a key store that must contain the private
@@ -67,8 +77,7 @@ public class ClientManager implements PasswordManager {
 		//DOES INIT NEED FRESHNESS??? I THINK NOT CAUSE NO RELEVANT DATA IS EXHANGED ASK PROF
 		this.ks = ks;
 		this.ksPassword = new PasswordProtection(ksPassword);
-		clientconn = new ClientConnections();
-	//	CryptoFunctions.setJcePolicy();
+		
 		// serverPubKey = KeyStoreFunc.getPublicKey(ks, SERVER_CERT_ALIAS);
 		serverPubKey = KeyStoreFunc.getPublicKeyCertificate(CERT_PATH);
 		// diffie-helman
@@ -101,6 +110,7 @@ public class ClientManager implements PasswordManager {
 		byte[] signature_p = CryptoFunctions.sign_data(serialized_p.getBytes(), privk);
 		byte[] signature_dhpk = CryptoFunctions.sign_data(serialized_dhpk.getBytes(), privk);
 		byte[] signature_fKey = CryptoFunctions.sign_data(serialized_fKey.getBytes(), privk);
+		
 
 		// Key serverPubKey = this.ks.getKey(SERVER_CERT_ALIAS, ksPassword);
 
@@ -109,6 +119,7 @@ public class ClientManager implements PasswordManager {
 		serialized_g = new String(CryptoFunctions.encrypt_data_symmetric(serialized_g.getBytes(), fKey));
 		serialized_p = new String(CryptoFunctions.encrypt_data_symmetric(serialized_p.getBytes(), fKey));
 		serialized_dhpk = new String(CryptoFunctions.encrypt_data_symmetric(serialized_dhpk.getBytes(), fKey));
+	
 
 		serialized_fKey = new String(CryptoFunctions.encrypt_data_asymmetric(serialized_fKey.getBytes(), serverPubKey));
 
@@ -117,9 +128,13 @@ public class ClientManager implements PasswordManager {
 		signature_p = CryptoFunctions.encrypt_data_symmetric(signature_p, fKey);
 		signature_dhpk = CryptoFunctions.encrypt_data_symmetric(signature_dhpk, fKey);
 		signature_fKey = CryptoFunctions.encrypt_data_symmetric(signature_fKey, fKey);
-
+		//devide ID para permitir 
+		String dId=new String(CryptoFunctions.encrypt_data_symmetric(deviceId.getBytes(), fKey));
+		byte[] signature_deviceId= CryptoFunctions.sign_data(deviceId.getBytes(),privk);
+		signature_deviceId=CryptoFunctions.encrypt_data_symmetric(signature_deviceId, fKey);
+		
 		byte[] clientPk = Base64.getDecoder().decode(clientconn.init(serialized_pk, signature_pk, serialized_dhpk,
-				signature_dhpk, serialized_g, signature_g, serialized_p, signature_p, serialized_fKey, signature_fKey));
+				signature_dhpk, serialized_g, signature_g, serialized_p, signature_p, serialized_fKey, signature_fKey,dId,signature_deviceId));
 
 		// Convert the public key bytes into a PublicKey object
 		X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(clientPk);
@@ -148,13 +163,20 @@ public class ClientManager implements PasswordManager {
 		// Get the public key to send!!!
 		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, CLIENT_PAIR_ALIAS);
 		PrivateKey privk = KeyStoreFunc.getPrivateKey(ks, CLIENT_PAIR_ALIAS, ksPassword);
+		
 		String serialize_pk = CryptoFunctions.serialize(pubk);
 		byte[] signature = CryptoFunctions.sign_data(serialize_pk.getBytes(), privk);
+		signature = CryptoFunctions.encrypt_data_symmetric(signature, sessionKey);
+		
+		
+		
+		byte[] signature_deviceId= CryptoFunctions.sign_data(deviceId.getBytes(),privk);
+		signature_deviceId=CryptoFunctions.encrypt_data_symmetric(signature_deviceId, sessionKey);
 		//nonce
 		byte[] hash_nonce = CryptoFunctions.getHashMessage(nonce);
 		//sign nonce
 		byte[] s_nonce = CryptoFunctions.sign_data(hash_nonce, privk);
-		clientconn.register(serialize_pk, signature, hash_nonce, s_nonce);
+		clientconn.register(serialize_pk, signature, hash_nonce, s_nonce,deviceId,signature_deviceId);
 
 	}
 
@@ -191,14 +213,18 @@ public class ClientManager implements PasswordManager {
 		//sign nonce
 		byte[] s_nonce = CryptoFunctions.sign_data(hash_nonce, privk);
 		
+		s_pubKey=CryptoFunctions.encrypt_data_symmetric(s_pubKey, sessionKey);
 		s_domain = CryptoFunctions.encrypt_data_symmetric(s_domain, sessionKey);
 		s_username = CryptoFunctions.encrypt_data_symmetric(s_username, sessionKey);
 		s_password = CryptoFunctions.encrypt_data_symmetric(s_password, sessionKey);
 		hash_d = CryptoFunctions.encrypt_data_symmetric(hash_d, sessionKey);
 		hash_u = CryptoFunctions.encrypt_data_symmetric(hash_u, sessionKey);
 		cypher_p = CryptoFunctions.encrypt_data_symmetric(cypher_p, sessionKey);
+		
+		byte[] signature_deviceId= CryptoFunctions.sign_data(deviceId.getBytes(),privk);
+		signature_deviceId=CryptoFunctions.encrypt_data_symmetric(signature_deviceId, sessionKey);
 
-		clientconn.put(serialize_pk, s_pubKey, hash_d, s_domain, hash_u, s_username, cypher_p, s_password, hash_nonce, s_nonce);
+		clientconn.put(serialize_pk, s_pubKey, hash_d, s_domain, hash_u, s_username, cypher_p, s_password, hash_nonce, s_nonce,deviceId,signature_deviceId);
 	}
 
 	/*
@@ -225,13 +251,18 @@ public class ClientManager implements PasswordManager {
 		//sign nonce
 		byte[] s_nonce = CryptoFunctions.sign_data(hash_nonce, privk);
 		
+		s_pubKey =CryptoFunctions.encrypt_data_symmetric(s_pubKey, sessionKey);
 		s_domain = CryptoFunctions.encrypt_data_symmetric(s_domain, sessionKey);
 		s_username = CryptoFunctions.encrypt_data_symmetric(s_username, sessionKey);
 		hash_d = CryptoFunctions.encrypt_data_symmetric(hash_d, sessionKey);
+		
+		byte[] signature_deviceId= CryptoFunctions.sign_data(deviceId.getBytes(),privk);
+		signature_deviceId=CryptoFunctions.encrypt_data_symmetric(signature_deviceId, sessionKey);
+		
 		hash_u = CryptoFunctions.encrypt_data_symmetric(hash_u, sessionKey);
-		hash_nonce = CryptoFunctions.encrypt_data_asymmetric(hash_nonce, sessionKey);
+	//	hash_nonce = CryptoFunctions.encrypt_data_symmetric(hash_nonce, sessionKey);
 		// Get the public key to send!!!
-		byte[] rowPassword = clientconn.get(serialize_pk, s_pubKey, hash_d, s_domain, hash_u, s_username, hash_nonce, s_nonce);
+		byte[] rowPassword = clientconn.get(serialize_pk, s_pubKey, hash_d, s_domain, hash_u, s_username, hash_nonce, s_nonce,deviceId,signature_deviceId);
 		byte[] password = CryptoFunctions.decrypt_data_symmetric(rowPassword, sessionKey);
 		byte[] p2 = CryptoFunctions.decrypt_data_asymmetric(password, privk);
 		String a = new String(p2);
