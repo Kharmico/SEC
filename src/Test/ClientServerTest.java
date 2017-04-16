@@ -65,7 +65,7 @@ public class ClientServerTest {
 		Server.main(a);
 		String key_serialized=CryptoFunctions.serialize(CryptoFunctions.genKey());
 		System.out.println("maste KEY "+key_serialized);
-		c = new ClientConnections();
+		c = new ClientConnections(a);
 		
 		k1 = CryptoFunctions.serialize(key1);
 		k2 = CryptoFunctions.serialize(key2);

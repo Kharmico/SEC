@@ -143,9 +143,64 @@ public class Server {
 				return Response.status(400).build();
 			}		
 			Key pk = manager.init(pkClient, dfhClient, g, p,deviceId);
-
-			System.out.println("Register ok");
+			
+			
 			return Response.ok(Base64.getEncoder().encode(pk.getEncoded())).build();
+		} catch (UserAlreadyRegisteredException u) {
+			return Response.status(400).build();
+		} catch (Exception e1) {
+			e1.printStackTrace();
+			return Response.status(400).build();
+		}
+
+	}
+	
+	@POST
+	@Path("/InitAll")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public Response initAll(String param) {
+
+		System.out.println("INIT all");
+		System.out.println(param);
+
+		JSONObject json;
+		try {
+			json = getJason(param);
+			Key serverPrivKey = manager.getServerPrivateKey();
+			String encriptedFKey=((String) json.get("symmetricKey"));
+			String serializedFKey=new String(CryptoFunctions.decrypt_data_asymmetric(encriptedFKey.getBytes(), serverPrivKey));
+			Key fKey=(Key) CryptoFunctions.desSerialize(serializedFKey);
+			//get nonce
+			//byte[] hashed_nonce = CryptoFunctions.getHashMessage(((String) json.get("nonce")).getBytes());
+			//byte[] signed_nonce = CryptoFunctions.getHashMessage(((String) json.get("signatureNonce")).getBytes());
+			
+			byte[] signature_fKey = CryptoFunctions
+					.decrypt_data_symmetric(((String) json.get("symmetricKeySignature")).getBytes(), fKey);
+			String pubKey = new String(CryptoFunctions.decrypt_data_symmetric(((String) json.get("pubKey")).getBytes(), fKey));
+			byte[] signature_pubKey = CryptoFunctions
+					.decrypt_data_symmetric(((String) json.get("pubKeySignature")).getBytes(), fKey);
+			Key pkClient = (Key) CryptoFunctions.desSerialize(pubKey);
+			if (!CryptoFunctions.verifySignature(pubKey.getBytes(), signature_pubKey, (PublicKey) pkClient)) {
+				return Response.status(400).build();
+			}
+			if (!CryptoFunctions.verifySignature(serializedFKey.getBytes(), signature_fKey, (PublicKey) pkClient)) {
+				return Response.status(400).build();
+			}	
+			
+			String deviceId=new String(CryptoFunctions.decrypt_data_symmetric(((String) json.get("deviceID")).getBytes(), fKey));
+			byte[] signature_deviceId =CryptoFunctions.decrypt_data_symmetric(((String) json.get("deviceIdSignature")).getBytes(), fKey);
+			if (!CryptoFunctions.verifySignature(deviceId.getBytes(), signature_deviceId, (PublicKey) pkClient)) {
+				return Response.status(400).build();
+			}
+			
+			String serializedSessionKey=new String(CryptoFunctions.decrypt_data_symmetric(((String)json.get("sessionKey")).getBytes(), fKey));
+			byte[] signature_SesionKey =CryptoFunctions.decrypt_data_symmetric(((String) json.get("sessionKeySignature")).getBytes(), fKey);
+			if (!CryptoFunctions.verifySignature(serializedSessionKey.getBytes(), signature_SesionKey, (PublicKey) pkClient)) {
+				return Response.status(400).build();
+			}
+			Key sessionKey=(Key) CryptoFunctions.desSerialize(serializedSessionKey);
+			manager.insertSessionKey(pkClient,(SecretKey)sessionKey,deviceId);
+			return Response.status(200).build();
 		} catch (UserAlreadyRegisteredException u) {
 			return Response.status(400).build();
 		} catch (Exception e1) {

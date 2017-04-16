@@ -120,13 +120,13 @@ public class Manager {
 
 		// Generate the secret key
 		SecretKey secretKey = ka.generateSecret(algorithm);
-		
+		System.out.println("init ok: key " +new String(Base64.getEncoder().encode(secretKey.getEncoded())));
 		insertSessionKey(pk,secretKey,deviceId);
 		
 		return publicKey;
 	}
 	
-	private void insertSessionKey(Key pubkey,SecretKey secretKey ,String deviceId){
+	public void insertSessionKey(Key pubkey,SecretKey secretKey ,String deviceId){
 		ByteArrayWrapper aux=new ByteArrayWrapper(Base64.getEncoder().encode(pubkey.getEncoded()));
 		Map<String,Key> map= sessionKeys.get(aux);
 		if(map==null)

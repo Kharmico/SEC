@@ -28,7 +28,7 @@ public class ClientApp {
 	 */
 	public static void main(String[] args) throws Exception {
 		Scanner readIns = new Scanner(System.in);
-		ClientManager cman = new ClientManager();
+		ClientManager cman = new ClientManager(args);
 //		KeyStoreFunc kstorefunc = new KeyStoreFunc();
 
 		// Variables to use for passing arguments for ClientManager. Must initialize them (give them a value)

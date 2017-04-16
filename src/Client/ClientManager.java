@@ -53,13 +53,13 @@ public class ClientManager implements PasswordManager {
 	private String deviceId;
 	private Key serverPubKey;
 
-public ClientManager(){
+public ClientManager(String[] urls){
 	Random r = new Random();
 	int Low = 1;
 	int High = 100;
 	Integer result = r.nextInt(High-Low) + Low;
 	deviceId= new String(Base64.getEncoder().encode(result.toString().getBytes()));
-	clientconn = new ClientConnections();
+	clientconn = new ClientConnections(urls);
 	CryptoFunctions.setJcePolicy();
 }
 	/*
@@ -133,11 +133,11 @@ public ClientManager(){
 		byte[] signature_deviceId= CryptoFunctions.sign_data(deviceId.getBytes(),privk);
 		signature_deviceId=CryptoFunctions.encrypt_data_symmetric(signature_deviceId, fKey);
 		
-		byte[] clientPk = Base64.getDecoder().decode(clientconn.init(serialized_pk, signature_pk, serialized_dhpk,
+		byte[] serverDhPk = Base64.getDecoder().decode(clientconn.init(serialized_pk, signature_pk, serialized_dhpk,
 				signature_dhpk, serialized_g, signature_g, serialized_p, signature_p, serialized_fKey, signature_fKey,dId,signature_deviceId));
 
 		// Convert the public key bytes into a PublicKey object
-		X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(clientPk);
+		X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(serverDhPk);
 		KeyFactory keyFact = KeyFactory.getInstance("DH");
 		dhPublicKey = keyFact.generatePublic(x509KeySpec);
 
@@ -149,6 +149,13 @@ public ClientManager(){
 
 		// Generate the secret key
 		sessionKey = ka.generateSecret("AES");
+		String serialized_sessionKey=CryptoFunctions.serialize(sessionKey);
+		byte[] signature_sessionKey= CryptoFunctions.sign_data(serialized_sessionKey.getBytes(), privk);
+		
+		serialized_sessionKey = new String(CryptoFunctions.encrypt_data_symmetric(serialized_sessionKey.getBytes(), fKey));
+		signature_sessionKey=CryptoFunctions.encrypt_data_symmetric(signature_sessionKey, fKey);
+		clientconn.initAll(serialized_pk, signature_pk,serialized_fKey, signature_fKey,dId,signature_deviceId,serialized_sessionKey,signature_sessionKey);
+		System.out.println("session key "+new String(Base64.getEncoder().encode(sessionKey.getEncoded())));
 
 	}
 
@@ -167,8 +174,6 @@ public ClientManager(){
 		String serialize_pk = CryptoFunctions.serialize(pubk);
 		byte[] signature = CryptoFunctions.sign_data(serialize_pk.getBytes(), privk);
 		signature = CryptoFunctions.encrypt_data_symmetric(signature, sessionKey);
-		
-		
 		
 		byte[] signature_deviceId= CryptoFunctions.sign_data(deviceId.getBytes(),privk);
 		signature_deviceId=CryptoFunctions.encrypt_data_symmetric(signature_deviceId, sessionKey);
@@ -192,13 +197,8 @@ public ClientManager(){
 		// Get the public key to send!!!
 		PrivateKey privk = KeyStoreFunc.getPrivateKey(ks, CLIENT_PAIR_ALIAS, ksPassword);
 		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, CLIENT_PAIR_ALIAS);
-		// Key superKey = new SecretKeySpec(MASTER_KEY, "AES");
 
 		String serialize_pk = CryptoFunctions.serialize(pubk);
-		// String cypher_d = CryptoFunctions.encrypt_data_asymmetric(new
-		// String(domain), pubk);
-		// String cypher_u = CryptoFunctions.encrypt_data_asymmetric(new
-		// String(username), pubk);
 		byte[] cypher_p = CryptoFunctions.encrypt_data_asymmetric(password, pubk);
 
 		byte[] hash_d = CryptoFunctions.getHashMessage(domain);
