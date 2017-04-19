@@ -26,6 +26,7 @@ import org.glassfish.jersey.client.ClientConfig;
 import org.json.simple.JSONObject;
 
 import Crypto.CryptoFunctions;
+import Crypto.Message;
 import Exceptions.ConectionFailedException;
 
 /**
@@ -50,72 +51,9 @@ public class ClientConnections {
 
 	}
 
-	@SuppressWarnings("unchecked")
-	public byte[] init(String pubKey, byte[] signature_pubKey, String dfhPubKey, byte[] signature_dfhPubKey, String g,
-			byte[] signed_g, String p, byte[] signed_p, String symmetricKey, byte[] signed_symmetricKey,
-			String deviceId, byte[] signed_deviceID)
-			throws ConectionFailedException, ClassNotFoundException, IOException {
-		JSONObject j = new JSONObject();
-		j.put("pubKey", pubKey);
-		j.put("pubKeySignature", new String(signature_pubKey));
-		j.put("dfhPubKey", dfhPubKey);
-		j.put("dfhPubKeySignature", new String(signature_dfhPubKey));
-		j.put("g", g);
-		j.put("gSignature", new String(signed_g));
-		j.put("p", p);
-		j.put("pSignature", new String(signed_p));
-		j.put("symmetricKey", symmetricKey);
-		j.put("symmetricKeySignature", new String(signed_symmetricKey));
-		j.put("deviceID", deviceId);
-		j.put("deviceIdSignature", new String(signed_deviceID));
-		// nonce
-		// j.put("nonce", new String(nonce));
-		// j.put("nonceSignature", new String(signature_nonce));
-		String json = URLEncoder.encode(j.toJSONString(), "UTF-8");
-		Iterator<Server> it = this.servers.values().iterator();
+	public void register(String message, byte[] signature_message) throws ConectionFailedException {
+		JSONObject j = this.createJson(message, signature_message);
 
-		return it.next().getTarget().path(String.format("/Server/Init/%s/", json)).request()
-				.accept(MediaType.APPLICATION_JSON).get(byte[].class);
-	}
-	@SuppressWarnings("unchecked")
-	public void initAll(String serialized_pk, byte[] signature_pk, String symmetricKey, byte[] signed_symmetricKey,
-			String dId, byte[] signature_deviceId, String serialized_sessionKey, byte[] signature_sessionKey) throws UnsupportedEncodingException {
-		JSONObject j = new JSONObject();
-		j.put("pubKey", serialized_pk);
-		j.put("pubKeySignature", new String(signature_pk));
-		j.put("symmetricKey", symmetricKey);
-		j.put("symmetricKeySignature", new String(signed_symmetricKey));
-		j.put("deviceID", dId);
-		j.put("deviceIdSignature", new String(signature_deviceId));
-		j.put("sessionKey", serialized_sessionKey);
-		j.put("sessionKeySignature", new String(signature_sessionKey));
-		// nonce
-		// j.put("nonce", new String(nonce));
-		// j.put("nonceSignature", new String(signature_nonce));
-//		String json = URLEncoder.encode(j.toJSONString(), "UTF-8");
-		for (Map.Entry<String, Server> entry : this.servers.entrySet()) {
-			// TODO: coisa feia
-			Server s = entry.getValue();
-
-		 s.getTarget().path(String.format("/Server/InitAll")).request()
-		 .accept(MediaType.APPLICATION_JSON)
-			.post(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
-		}
-		
-	}
-
-	@SuppressWarnings("unchecked")
-	public void register(String pubKey, byte[] signature_pubKey, byte[] nonce, byte[] signature_nonce, String deviceId,
-			byte[] signed_deviceID) throws ConectionFailedException {
-		JSONObject j = new JSONObject();
-		j.put("pubKey", pubKey);
-		j.put("pubKeySignature", new String(signature_pubKey));
-		// nonce
-		j.put("nonce", new String(nonce));
-		j.put("nonceSignature", new String(signature_nonce));
-		// deviceID
-		j.put("deviceID", deviceId);
-		j.put("deviceIdSignature", new String(signed_deviceID));
 		for (Map.Entry<String, Server> entry : this.servers.entrySet()) {
 			// TODO: coisa feia
 			Server s = entry.getValue();
@@ -127,25 +65,8 @@ public class ClientConnections {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	public void put(String pubKey, byte[] signature_pubKey, byte[] domain, byte[] signature_domain, byte[] username,
-			byte[] signature_username, byte[] password, byte[] signature_password, byte[] nonce, byte[] signature_nonce,
-			String deviceId, byte[] signed_deviceID) {
-		JSONObject j = new JSONObject();
-		j.put("pubKey", pubKey);
-		j.put("pubKeySignature", new String(signature_pubKey));
-		j.put("domain", new String(domain));
-		j.put("domainSignature", new String(signature_domain));
-		j.put("username", new String(username));
-		j.put("usernameSignature", new String(signature_username));
-		j.put("password", new String(password));
-		j.put("passwordSignature", new String(signature_password));
-		// nonce
-		j.put("nonce", new String(nonce));
-		j.put("nonceSignature", new String(signature_nonce));
-		// deviceID
-		j.put("deviceID", deviceId);
-		j.put("deviceIdSignature", new String(signed_deviceID));
+	public void put(String message, byte[] signature_message) {
+		JSONObject j = this.createJson(message, signature_message);
 
 		for (Map.Entry<String, Server> entry : this.servers.entrySet()) {
 			// TODO: coisa feia
@@ -157,35 +78,26 @@ public class ClientConnections {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	public byte[] get(String pubKey, byte[] signature_pubKey, byte[] domain, byte[] signature_domain, byte[] username,
-			byte[] signature_username, byte[] nonce, byte[] signature_nonce, String deviceId, byte[] signed_deviceID)
-			throws UnsupportedEncodingException {
-		System.out.println("domain no client " + domain);
-		JSONObject j = new JSONObject();
-		j.put("pubKey", pubKey);
-		j.put("pubKeySignature", new String(signature_pubKey));
-		j.put("domain", new String(domain));
-		j.put("domainSignature", new String(signature_domain));
-		j.put("username", new String(username));
-		j.put("usernameSignature", new String(signature_username));
-		// nonce
-		j.put("nonce", new String(nonce));
-		j.put("nonceSignature", new String(signature_nonce));
-		// deviceID
-		j.put("deviceID", deviceId);
-		j.put("deviceIdSignature", new String(signed_deviceID));
-
+	public Message get(String message, byte[] signature_message) throws ClassNotFoundException, IOException {
+		JSONObject j = this.createJson(message, signature_message);
 		String json = URLEncoder.encode(j.toJSONString(), "UTF-8");
-		byte[] response = null;
+		Message m = null;
 		for (Map.Entry<String, Server> entry : this.servers.entrySet()) {
 			// TODO: coisa feia
 			Server s = entry.getValue();
-			response = s.getTarget().path(String.format("/Server/Get/%s/", json)).request()
-					.accept(MediaType.APPLICATION_JSON).get(byte[].class);
-
+			String aux = s.getTarget().path(String.format("/Server/Get/%s/", json)).request()
+					.accept(MediaType.APPLICATION_JSON).get(String.class);
+			m = (Message) CryptoFunctions.desSerialize(aux);
 		}
-		return response;
+		return m;
+	}
+
+	@SuppressWarnings("unchecked")
+	private JSONObject createJson(String message, byte[] signature_message) {
+		JSONObject j = new JSONObject();
+		j.put("message", message);
+		j.put("messageSignature", new String(signature_message));
+		return j;
 	}
 
 	private static void checkStatus(Response res) {

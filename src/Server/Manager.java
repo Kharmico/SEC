@@ -62,9 +62,7 @@ import Exceptions.UsernameNotFoundException;
  */
 public class Manager {
 
-	private static final String SECRET_KEY_ALIAS = "secretServerKey";
 	private static final String SERVER_PAIR_ALIAS = "serversec";
-
 	private static final String KS_PATH = System.getProperty("user.dir") + "\\Resources\\KeyStore.jks";
 	public static final String USERS_FILE = System.getProperty("user.dir") + "\\Resources\\Users";
 
@@ -76,12 +74,9 @@ public class Manager {
 	private KeyStore ks;
 	private ConcurrentMap<ByteArrayWrapper, User> users;
 	private PasswordProtection ksPassword;
-	private ConcurrentMap<ByteArrayWrapper, Map<String,Key>> sessionKeys;
 
 	private void serverImpl(char[] password) throws ClassNotFoundException, IOException {
 		this.users = new ConcurrentHashMap<ByteArrayWrapper, User>();
-		this.sessionKeys = new ConcurrentHashMap<ByteArrayWrapper, Map<String,Key>>();
-
 	}
 
 	public Manager(char[] ksPassword) throws Exception {
@@ -94,53 +89,6 @@ public class Manager {
 		this.ksPassword = new PasswordProtection(ksPassword);
 		this.ks = KeyStoreFunc.loadKeyStore(KS_PATH, ksPassword, SERVER_PAIR_ALIAS);
 	}
-
-	public Key init(Key pk, Key dhPk, BigInteger g, BigInteger p,String deviceId)
-			throws InvalidKeyException, IllegalStateException, NoSuchAlgorithmException, UnrecoverableEntryException,
-			KeyStoreException, InvalidKeySpecException, InvalidAlgorithmParameterException {
-		// Use the values to generate a key pair
-		KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH");
-		DHParameterSpec dhSpec = new DHParameterSpec(p, g);
-		keyGen.initialize(dhSpec);
-		KeyPair keypair = keyGen.generateKeyPair();
-
-		// Get the generated public and private keys
-		Key privateKey = keypair.getPrivate();
-		Key publicKey = keypair.getPublic();
-		
-		System.out.println("DH PUBKEY CLIENT " + new String(Base64.getEncoder().encode(dhPk.getEncoded())));
-		// Prepare to generate the secret key with the private key and public
-		// key of the other party
-		KeyAgreement ka = KeyAgreement.getInstance("DH");
-		ka.init(privateKey);
-		ka.doPhase(dhPk, true);
-
-		// Specify the type of key to generate;
-		String algorithm = "AES";
-
-		// Generate the secret key
-		SecretKey secretKey = ka.generateSecret(algorithm);
-		System.out.println("init ok: key " +new String(Base64.getEncoder().encode(secretKey.getEncoded())));
-		insertSessionKey(pk,secretKey,deviceId);
-		
-		return publicKey;
-	}
-	
-	public void insertSessionKey(Key pubkey,SecretKey secretKey ,String deviceId){
-		ByteArrayWrapper aux=new ByteArrayWrapper(Base64.getEncoder().encode(pubkey.getEncoded()));
-		Map<String,Key> map= sessionKeys.get(aux);
-		if(map==null)
-			map=new HashMap<String,Key>();
-		map.put(deviceId, secretKey);
-		sessionKeys.put(aux, map);
-	}
-
-	protected Key getSessionKey(PublicKey clientPk,String deviceId) {
-		ByteArrayWrapper aux=new ByteArrayWrapper(Base64.getEncoder().encode(clientPk.getEncoded()));
-		Map<String,Key> map= sessionKeys.get(aux);
-		return map.get(deviceId);	
-	}
-
 	public void register(Key publicKey) throws UserAlreadyRegisteredException {
 		ByteArrayWrapper	pk = new ByteArrayWrapper(Base64.getEncoder().encode(publicKey.getEncoded()));
 		if (this.users.containsKey(pk))
@@ -248,7 +196,7 @@ public class Manager {
 		}
 
 	}
-	protected Key getServerPrivateKey() throws NoSuchAlgorithmException, UnrecoverableEntryException, KeyStoreException{
+	protected PrivateKey getServerPrivateKey() throws NoSuchAlgorithmException, UnrecoverableEntryException, KeyStoreException{
 		return KeyStoreFunc.getPrivateKey(ks, SERVER_PAIR_ALIAS, ksPassword);
 	}
 
