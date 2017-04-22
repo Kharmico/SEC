@@ -32,7 +32,7 @@ public class KeyStoreFunc {
 	}
 
 	public static KeyStore loadKeyStore(String file, char[] ksPassword, String alias) throws Exception {
-		KeyStore ks = KeyStore.getInstance("JCEKS");
+		KeyStore ks = KeyStore.getInstance("JKS");
 		// this.ksPassword = new PasswordProtection(ksPassword);
 
 		java.io.FileOutputStream fos = null;

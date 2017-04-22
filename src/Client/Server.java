@@ -1,5 +1,7 @@
 package Client;
 
+import java.security.PublicKey;
+
 import javax.ws.rs.client.WebTarget;
 
 public interface Server {
@@ -26,4 +28,8 @@ public interface Server {
 
 	
 	public WebTarget getTarget();
+	
+	public PublicKey getPubKey();
+	
+	public void setPubKey(PublicKey key);
 }

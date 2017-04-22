@@ -63,7 +63,7 @@ import Exceptions.UsernameNotFoundException;
 public class Manager {
 
 	private static final String SERVER_PAIR_ALIAS = "serversec";
-	private static final String KS_PATH = System.getProperty("user.dir") + "\\Resources\\KeyStore.jks";
+	private static final String KS_PATH = System.getProperty("user.dir") + "\\Resources\\KeyStore%s.jks";
 	public static final String USERS_FILE = System.getProperty("user.dir") + "\\Resources\\Users";
 
 	private static final String CIPHER_ALG = "AES/ECB/PKCS5Padding";
@@ -75,19 +75,20 @@ public class Manager {
 	private ConcurrentMap<ByteArrayWrapper, User> users;
 	private PasswordProtection ksPassword;
 
-	private void serverImpl(char[] password) throws ClassNotFoundException, IOException {
+	private void manegerImpl(char[] password) throws ClassNotFoundException, IOException {
 		this.users = new ConcurrentHashMap<ByteArrayWrapper, User>();
+		this.ksPassword = new PasswordProtection(password);
 	}
 
-	public Manager(char[] ksPassword) throws Exception {
-		this.serverImpl(ksPassword);
-		this.ksPassword = new PasswordProtection(ksPassword);
-		this.ks = KeyStoreFunc.loadKeyStore(KS_PATH, ksPassword, SERVER_PAIR_ALIAS);
+	public Manager(char[] ksPassword,int port) throws Exception {
+		this.manegerImpl(ksPassword);
+		String s =String.format(KS_PATH, port);
+		this.ks = KeyStoreFunc.loadKeyStore(String.format(KS_PATH, port), ksPassword, SERVER_PAIR_ALIAS);
 	}
-	public Manager(String file, char[] ksPassword) throws Exception {
-		this.serverImpl(ksPassword);
-		this.ksPassword = new PasswordProtection(ksPassword);
-		this.ks = KeyStoreFunc.loadKeyStore(KS_PATH, ksPassword, SERVER_PAIR_ALIAS);
+	public Manager(String file, char[] ksPassword,int port) throws Exception {
+		this.manegerImpl(ksPassword);
+		
+		this.ks = KeyStoreFunc.loadKeyStore(file, ksPassword, SERVER_PAIR_ALIAS);
 	}
 	public void register(Key publicKey) throws UserAlreadyRegisteredException {
 		ByteArrayWrapper	pk = new ByteArrayWrapper(Base64.getEncoder().encode(publicKey.getEncoded()));

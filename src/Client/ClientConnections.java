@@ -36,75 +36,62 @@ import Exceptions.ConectionFailedException;
 public class ClientConnections {
 
 	// public static final String SERVER_URL = "http://localhost:9000";
-	public static final int OK = 200;
-	public static final int BAD_REQUEST = 400;
-
-	private Map<String, Server> servers;
+//	public static final int OK = 200;
+//	public static final int BAD_REQUEST = 400;
 
 	// para teste usamos um vvalor random para identificar o dispositivo na
 	// pratica deveria ser um ip adress
-	public ClientConnections(String[] urls) {
-		this.servers = new HashMap<String, Server>();
-		for (int i = 0; i < urls.length; i++) {
-			this.servers.put(urls[i], new ServerClass(urls[i]));
-		}
+	// public ClientConnections(String[] urls) {
+	// this.servers = new HashMap<String, Server>();
+	// for (int i = 0; i < urls.length; i++) {
+	// this.servers.put(urls[i], new ServerClass(urls[i]));
+	// }
+	//
+	// }
+	// public Map<String,Server> getServers(){
+	// return this.servers;
+	// }
+
+	public static Response register(WebTarget target, String message, byte[] signature_message)
+			throws ConectionFailedException {
+		JSONObject j = ClientConnections.createJson(message, signature_message);
+		return target.path(String.format("/Server/Register")).request().accept(MediaType.APPLICATION_JSON)
+				.post(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
+	}
+
+	public static Response put(WebTarget target, String message, byte[] signature_message) {
+		JSONObject j = ClientConnections.createJson(message, signature_message);
+
+		return target.path(String.format("/Server/Put")).request().accept(MediaType.APPLICATION_JSON)
+				.post(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
 
 	}
 
-	public void register(String message, byte[] signature_message) throws ConectionFailedException {
-		JSONObject j = this.createJson(message, signature_message);
-
-		for (Map.Entry<String, Server> entry : this.servers.entrySet()) {
-			// TODO: coisa feia
-			Server s = entry.getValue();
-			Response response = s.getTarget().path(String.format("/Server/Register")).request()
-					.accept(MediaType.APPLICATION_JSON)
-					.post(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
-
-			checkStatus(response);
-		}
-	}
-
-	public void put(String message, byte[] signature_message) {
-		JSONObject j = this.createJson(message, signature_message);
-
-		for (Map.Entry<String, Server> entry : this.servers.entrySet()) {
-			// TODO: coisa feia
-			Server s = entry.getValue();
-			Response response = s.getTarget().path(String.format("/Server/Put")).request()
-					.accept(MediaType.APPLICATION_JSON)
-					.post(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
-			checkStatus(response);
-		}
-	}
-
-	public Message get(String message, byte[] signature_message) throws ClassNotFoundException, IOException {
-		JSONObject j = this.createJson(message, signature_message);
+	public static Message get(WebTarget target, String message, byte[] signature_message)
+			throws ClassNotFoundException, IOException {
+		JSONObject j = ClientConnections.createJson(message, signature_message);
 		String json = URLEncoder.encode(j.toJSONString(), "UTF-8");
 		Message m = null;
-		for (Map.Entry<String, Server> entry : this.servers.entrySet()) {
-			// TODO: coisa feia
-			Server s = entry.getValue();
-			String aux = s.getTarget().path(String.format("/Server/Get/%s/", json)).request()
-					.accept(MediaType.APPLICATION_JSON).get(String.class);
-			m = (Message) CryptoFunctions.desSerialize(aux);
-		}
+		String aux = target.path(String.format("/Server/Get/%s/", json)).request().accept(MediaType.APPLICATION_JSON)
+				.get(String.class);
+		m = (Message) CryptoFunctions.desSerialize(aux);
+
 		return m;
 	}
 
 	@SuppressWarnings("unchecked")
-	private JSONObject createJson(String message, byte[] signature_message) {
+	private static JSONObject createJson(String message, byte[] signature_message) {
 		JSONObject j = new JSONObject();
 		j.put("message", message);
 		j.put("messageSignature", new String(signature_message));
 		return j;
 	}
 
-	private static void checkStatus(Response res) {
-		if (res.getStatus() == BAD_REQUEST)
-			throw new BadRequestException();
-		if (res.getStatus() != OK)
-			throw new ConectionFailedException();
-	}
+//	private static void checkStatus(Response res) {
+//		if (res.getStatus() == BAD_REQUEST)
+//			throw new BadRequestException();
+//		if (res.getStatus() != OK)
+//			throw new ConectionFailedException();
+//	}
 
 }

@@ -63,8 +63,7 @@ public class Server {
 	public static final int OK = 200;
 	public static final int BAD_REQUEST = 400;
 	// this password should be passed as parameter when server boots
-	private static final PasswordProtection DEFAULT_KS_PASSWORD = new PasswordProtection(
-			"a26tUfrGg4e4LHX".toCharArray());
+	private static PasswordProtection DEFAULT_KS_PASSWORD = new PasswordProtection("a26tUfrGg4e4LHX".toCharArray());
 	private static Manager manager;
 
 	public Server() {
@@ -77,8 +76,8 @@ public class Server {
 	 */
 	public static void main(String[] args) throws Exception {
 		int port = args.length > 0 ? Integer.parseInt(args[0]) : PORT;
-		manager = args.length > 1 ? new Manager(args[2], args[1].toCharArray())
-				: new Manager(DEFAULT_KS_PASSWORD.getPassword());
+		manager = args.length > 1 ? new Manager(args[2], args[1].toCharArray(), port)
+				: new Manager(DEFAULT_KS_PASSWORD.getPassword(), port);
 
 		CryptoFunctions.setJcePolicy();
 		// InetAddress s = localhostAddress();
@@ -136,7 +135,6 @@ public class Server {
 
 	}
 
-	
 	@GET
 	@Path("/Get/{json}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -151,13 +149,13 @@ public class Server {
 			json = getJason(param);
 			Message m = this.checkSignature(json);
 			byte[] password = manager.get(m.getPubKey(), m.getDomain(), m.getUsername());
-			byte[] signedPassword= CryptoFunctions.sign_data(password, manager.getServerPrivateKey());
-			
-			m.setPassword(password,signedPassword);
-			String serialized_m=CryptoFunctions.serialize(m);
+			byte[] signedPassword = CryptoFunctions.sign_data(password, manager.getServerPrivateKey());
+
+			m.setPassword(password, signedPassword);
+			String serialized_m = CryptoFunctions.serialize(m);
 			return Response.ok(serialized_m).build();
 		} catch (Exception e1) {
-
+			e1.printStackTrace();
 			return Response.status(400).build();
 		}
 
@@ -193,19 +191,20 @@ public class Server {
 	public static void stop() {
 		System.exit(1);
 	}
-	
-	private Message checkSignature(JSONObject  json)throws InvalidSignatureException, ClassNotFoundException, IOException, InvalidKeyException, SignatureException, NoSuchAlgorithmException{
+
+	private Message checkSignature(JSONObject json) throws InvalidSignatureException, ClassNotFoundException,
+			IOException, InvalidKeyException, SignatureException, NoSuchAlgorithmException {
 		String serialized_message = (String) json.get("message");
 
 		Message m = (Message) CryptoFunctions.desSerialize(serialized_message);
 		byte[] signature = ((String) json.get("messageSignature")).getBytes();
 		PublicKey publicKey = m.getPubKey();
-		//check signature
+		// check signature
 		if (!CryptoFunctions.verifySignature(serialized_message.getBytes(), signature, publicKey)) {
 			throw new InvalidSignatureException();
 		}
 		// .digest automatically makes the checksums
-		//checkFreesheness
+		// checkFreesheness
 		CryptoFunctions.getHashMessage(m.getNounce());
 		return m;
 	}
