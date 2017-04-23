@@ -16,30 +16,36 @@ public class Message  implements Serializable{
 	private byte[] password;
 	private byte[] nonce;
 	private byte[] passwordSignature;
+	private long timeStamp;
 	
 	private void init(PublicKey pubKey,byte[] nonce,String deviceId){
 		this.pubKey=pubKey;
 		this.deviceId=deviceId;
 		this.nonce=nonce;
 	}
+	
 	public Message(){
 		
 	}
 
-	public Message( PublicKey pubKey,byte[] domain, byte[] username,byte[] password, byte[] nonce,String deviceId){
+	public Message(PublicKey pubKey,byte[] domain, byte[] username,byte[] password, byte[] nonce,String deviceId, long timeStamp){
 		this.init(pubKey,nonce, deviceId);
 		this.domain=domain;
 		this.username=username;
 		this.password=password;
+		this.timeStamp = timeStamp;
 	}
-	public Message( PublicKey pubKey, byte[] nonce,String deviceId){
+		
+	
+	public Message(PublicKey pubKey, byte[] nonce,String deviceId){
 		this.init(pubKey,nonce, deviceId);	
 		
 	}
-	public Message(PublicKey pubKey, byte[] domain, byte[] username, byte[] nonce, String deviceId) {
+	public Message(PublicKey pubKey, byte[] domain, byte[] username, byte[] nonce, String deviceId, long timeStamp) {
 		this.init(pubKey,nonce, deviceId);	
 		this.domain=domain;
 		this.username=username;
+		this.timeStamp = timeStamp;
 	}
 
 	public PublicKey getPubKey(){

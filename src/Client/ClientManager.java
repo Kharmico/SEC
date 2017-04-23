@@ -28,7 +28,9 @@ import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -39,6 +41,7 @@ import javax.crypto.interfaces.DHPrivateKey;
 import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.DHParameterSpec;
 import javax.security.auth.DestroyFailedException;
+import javax.ws.rs.core.Response;
 
 //Class com cryptografica
 public class ClientManager implements PasswordManager {
@@ -46,14 +49,21 @@ public class ClientManager implements PasswordManager {
 	private static final String SERVER_CERT_ALIAS = "servercert";
 	private static final String CLIENT_PAIR_ALIAS = "clientPair";
 	private static final String CERT_PATH = System.getProperty("user.dir") + "\\Resources\\serversec%s.cer";
-
+	
+	// nServers = servers.size()
+	private int f = 1;
+	private int thriceFault = 0; 
+	private int twiceFault = 0;
+	private int writeId = 0;
+	private int readId = 0;
+	private static ArrayList<String> ackList;
+	private static ArrayList<Integer> readList;
+	
 	private KeyStore ks = null;
 	// private static final String KEY_ALIAS = "serversec";
 	PasswordProtection ksPassword = null;
 	int bitLength = 1024;
 	SecureRandom rnd = new SecureRandom();
-	BigInteger p = BigInteger.probablePrime(bitLength, rnd);
-	BigInteger g = BigInteger.probablePrime(bitLength, rnd);
 	private String deviceId;
 	private Map<String, Server> servers;
 
@@ -66,6 +76,10 @@ public class ClientManager implements PasswordManager {
 		int Low = 1;
 		int High = 100;
 		Integer result = r.nextInt(High - Low) + Low;
+		thriceFault = f*3 + 1;
+		twiceFault = f*2 + 1;
+		ackList = new ArrayList<String>(servers.size());
+		readList = new ArrayList<Integer>(servers.size());
 		deviceId = new String(Base64.getEncoder().encode(result.toString().getBytes()));
 		CryptoFunctions.setJcePolicy();
 	}
@@ -87,7 +101,6 @@ public class ClientManager implements PasswordManager {
 		for (Server s : servers.values()) {
 			URI u = new URI(s.getUrl());
 			u.getPort();
-			// serverPubKey = KeyStoreFunc.getPublicKey(ks, SERVER_CERT_ALIAS);
 			PublicKey serverPubKey = KeyStoreFunc.getPublicKeyCertificate(String.format(CERT_PATH, u.getPort()));
 			s.setPubKey(serverPubKey);
 		}
@@ -110,7 +123,6 @@ public class ClientManager implements PasswordManager {
 		String serialized_message = CryptoFunctions.serialize(m);
 		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
 		for (Server s : servers.values()) {
-			
 			ClientConnections.register(s.getTarget(),serialized_message, signed_message);
 		}
 
@@ -130,15 +142,24 @@ public class ClientManager implements PasswordManager {
 		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, CLIENT_PAIR_ALIAS);
 		byte[] cypher_p = CryptoFunctions.encrypt_data_asymmetric(password, pubk);
 		String salt = this.getSalt();
-
+		long timeStamp = System.currentTimeMillis();
 		byte[] hash_d = CryptoFunctions.getHashMessage((new String(domain) + salt).getBytes());
 		byte[] hash_u = CryptoFunctions.getHashMessage((new String(username) + salt).getBytes());
-		Message m = new Message(pubk, hash_d, hash_u, cypher_p, nonce, deviceId);
+		Message m = new Message(pubk, hash_d, hash_u, cypher_p, nonce, deviceId, timeStamp);
 		String serialized_message = CryptoFunctions.serialize(m);
 		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
+		int count = 0;
 		for (Server s : servers.values()) {
-			ClientConnections.put(s.getTarget(),serialized_message, signed_message);
+			//TODO only writes after a previous connection with the server to receive an ack?
+			writeId++;
+			Response r = ClientConnections.put(s.getTarget(),serialized_message, signed_message);
+			if(r.getStatus() == 200)
+				ackList.add(count, "ack");
+			count++;
 		}
+		//TODO send Message, receive acks, communicate to servers to actually save the Message!
+		if(Collections.frequency(ackList, "ack") > ((servers.size() + f) / 2))
+			ackList.clear();
 	}
 
 	/*
@@ -154,9 +175,10 @@ public class ClientManager implements PasswordManager {
 		PrivateKey privk = KeyStoreFunc.getPrivateKey(ks, CLIENT_PAIR_ALIAS, ksPassword);
 		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, CLIENT_PAIR_ALIAS);
 		String salt = this.getSalt();
+		long timeStamp = System.currentTimeMillis();
 		byte[] hash_d = CryptoFunctions.getHashMessage((new String(domain) + salt).getBytes());
 		byte[] hash_u = CryptoFunctions.getHashMessage((new String(username) + salt).getBytes());
-		Message m = new Message(pubk, hash_d, hash_u, nonce, deviceId);
+		Message m = new Message(pubk, hash_d, hash_u, nonce, deviceId, timeStamp);
 		String serialized_message = CryptoFunctions.serialize(m);
 		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
 		for (Server s : servers.values()) {
