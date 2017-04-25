@@ -48,6 +48,7 @@ import com.sun.net.httpserver.HttpServer;
 import Crypto.CryptoFunctions;
 import Crypto.KeyStoreFunc;
 import Crypto.Message;
+import Crypto.Password;
 import Exceptions.InvalidSignatureException;
 import Exceptions.UserAlreadyRegisteredException;
 
@@ -135,6 +136,7 @@ public class Server {
 
 	}
 
+	@SuppressWarnings("unchecked")
 	@GET
 	@Path("/Get/{json}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -148,12 +150,18 @@ public class Server {
 			json = getJason(param);
 			json = getJason(param);
 			Message m = this.checkSignature(json);
-			byte[] password = manager.get(m.getPubKey(), m.getDomain(), m.getUsername());
-			byte[] signedPassword = CryptoFunctions.sign_data(password, manager.getServerPrivateKey());
-
-			m.setPassword(password, signedPassword);
+			Password password = manager.get(m.getPubKey(), m.getDomain(), m.getUsername());
+			m.setPassword(password);
 			String serialized_m = CryptoFunctions.serialize(m);
-			return Response.ok(serialized_m).build();
+			json= new JSONObject();
+			byte[] signedMessage = CryptoFunctions.sign_data(serialized_m.getBytes(), manager.getServerPrivateKey());
+			json.put("message", serialized_m);
+			json.put("signature",new String( signedMessage));
+			
+
+			
+			
+			return Response.ok(json).build();
 		} catch (Exception e1) {
 			e1.printStackTrace();
 			return Response.status(400).build();

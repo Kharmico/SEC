@@ -67,16 +67,13 @@ public class ClientConnections {
 
 	}
 
-	public static Message get(WebTarget target, String message, byte[] signature_message)
+	public static JSONObject get(WebTarget target, String message, byte[] signature_message)
 			throws ClassNotFoundException, IOException {
 		JSONObject j = ClientConnections.createJson(message, signature_message);
 		String json = URLEncoder.encode(j.toJSONString(), "UTF-8");
-		Message m = null;
-		String aux = target.path(String.format("/Server/Get/%s/", json)).request().accept(MediaType.APPLICATION_JSON)
-				.get(String.class);
-		m = (Message) CryptoFunctions.desSerialize(aux);
-
-		return m;
+		j = target.path(String.format("/Server/Get/%s/", json)).request().accept(MediaType.APPLICATION_JSON)
+				.get(JSONObject.class);
+		return j;
 	}
 
 	@SuppressWarnings("unchecked")

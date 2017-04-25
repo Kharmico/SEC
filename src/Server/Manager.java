@@ -51,6 +51,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 import Crypto.CryptoFunctions;
 import Crypto.KeyStoreFunc;
+import Crypto.Password;
 import Exceptions.DomainNotFoundException;
 import Exceptions.UserAlreadyRegisteredException;
 import Exceptions.UserNotRegisteredException;
@@ -97,14 +98,14 @@ public class Manager {
 		this.users.put(pk, new User(pk));
 	}
 
-	public void put(Key publicKey, byte[] domain, byte[] username, byte[] password) throws UserNotRegisteredException {
+	public void put(Key publicKey, byte[] domain, byte[] username, Password password) throws UserNotRegisteredException {
 		ByteArrayWrapper pk = new ByteArrayWrapper(Base64.getEncoder().encode(publicKey.getEncoded()));
 		if (!this.users.containsKey(pk))
 			throw new UserNotRegisteredException();
 		this.users.get(pk).put(domain, username, password);
 	}
 
-	public byte[] get(Key publicKey, byte[] domain, byte[] username)
+	public Password get(Key publicKey, byte[] domain, byte[] username)
 			throws UserNotRegisteredException, DomainNotFoundException, UsernameNotFoundException {
 
 		ByteArrayWrapper pk = new ByteArrayWrapper(Base64.getEncoder().encode(publicKey.getEncoded()));

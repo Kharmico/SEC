@@ -1,14 +1,7 @@
 package Client;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.net.URI;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.Key;
-import java.security.KeyFactory;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStore.PasswordProtection;
 import java.security.KeyStoreException;
@@ -16,49 +9,39 @@ import java.security.KeyStoreException;
 import Crypto.CryptoFunctions;
 import Crypto.KeyStoreFunc;
 import Crypto.Message;
-import Exceptions.InvalidSignatureException;
-
+import Crypto.Password;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
-import java.security.SignatureException;
-import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-import javax.crypto.KeyAgreement;
-import javax.crypto.SecretKey;
-import javax.crypto.interfaces.DHPrivateKey;
-import javax.crypto.interfaces.DHPublicKey;
-import javax.crypto.spec.DHParameterSpec;
 import javax.security.auth.DestroyFailedException;
 import javax.ws.rs.core.Response;
+
+import org.json.simple.JSONObject;
 
 //Class com cryptografica
 public class ClientManager implements PasswordManager {
 
-	private static final String SERVER_CERT_ALIAS = "servercert";
+	// private static final String SERVER_CERT_ALIAS = "servercert";
 	private static final String CLIENT_PAIR_ALIAS = "clientPair";
 	private static final String CERT_PATH = System.getProperty("user.dir") + "\\Resources\\serversec%s.cer";
-	
+
 	// nServers = servers.size()
-	private int f = 1;
-	private int thriceFault = 0; 
-	private int twiceFault = 0;
-	private int writeId = 0;
-	private int readId = 0;
-	private static ArrayList<String> ackList;
-	private static ArrayList<Integer> readList;
-	
+	// private int f = 1;
+	// private int thriceFault = 0;
+	// private int twiceFault = 0;
+	// private int writeId = 0;
+	// private int readId = 0;
+	// private static ArrayList<String> ackList;
+	// private static ArrayList<Integer> readList;
+
 	private KeyStore ks = null;
 	// private static final String KEY_ALIAS = "serversec";
 	PasswordProtection ksPassword = null;
@@ -76,10 +59,10 @@ public class ClientManager implements PasswordManager {
 		int Low = 1;
 		int High = 100;
 		Integer result = r.nextInt(High - Low) + Low;
-		thriceFault = f*3 + 1;
-		twiceFault = f*2 + 1;
-		ackList = new ArrayList<String>(servers.size());
-		readList = new ArrayList<Integer>(servers.size());
+		// thriceFault = f * 3 + 1;
+		// twiceFault = f * 2 + 1;
+		// ackList = new ArrayList<String>(servers.size());
+		// readList = new ArrayList<Integer>(servers.size());
 		deviceId = new String(Base64.getEncoder().encode(result.toString().getBytes()));
 		CryptoFunctions.setJcePolicy();
 	}
@@ -123,7 +106,7 @@ public class ClientManager implements PasswordManager {
 		String serialized_message = CryptoFunctions.serialize(m);
 		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
 		for (Server s : servers.values()) {
-			ClientConnections.register(s.getTarget(),serialized_message, signed_message);
+			ClientConnections.register(s.getTarget(), serialized_message, signed_message);
 		}
 
 	}
@@ -142,24 +125,33 @@ public class ClientManager implements PasswordManager {
 		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, CLIENT_PAIR_ALIAS);
 		byte[] cypher_p = CryptoFunctions.encrypt_data_asymmetric(password, pubk);
 		String salt = this.getSalt();
+		// FIXME: timestam em sistemas distribuidos nunca podem ser o wall
+		// clock, relogios logicos sff!
 		long timeStamp = System.currentTimeMillis();
 		byte[] hash_d = CryptoFunctions.getHashMessage((new String(domain) + salt).getBytes());
 		byte[] hash_u = CryptoFunctions.getHashMessage((new String(username) + salt).getBytes());
-		Message m = new Message(pubk, hash_d, hash_u, cypher_p, nonce, deviceId, timeStamp);
+		byte[] pduSignature = CryptoFunctions
+				.sign_data((new String(hash_d) + new String(hash_u) + new String(cypher_p)).getBytes(), privk);
+		Password pw = new Password(hash_d, hash_u, cypher_p, pduSignature);
+		Message m = new Message(pubk, hash_d, hash_u, pw, nonce, deviceId, timeStamp);
 		String serialized_message = CryptoFunctions.serialize(m);
 		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
 		int count = 0;
+		// ackList = new ArrayList<String>(servers.size());
 		for (Server s : servers.values()) {
-			//TODO only writes after a previous connection with the server to receive an ack?
-			writeId++;
-			Response r = ClientConnections.put(s.getTarget(),serialized_message, signed_message);
-			if(r.getStatus() == 200)
-				ackList.add(count, "ack");
-			count++;
+			// TODO only writes after a previous connection with the server to
+			// receive an ack?
+			// writeId++;
+			Response r = ClientConnections.put(s.getTarget(), serialized_message, signed_message);
+			// if (r.getStatus() == 200)
+			// ackList.add(count, "ack");
+			// count++;
 		}
-		//TODO send Message, receive acks, communicate to servers to actually save the Message!
-		if(Collections.frequency(ackList, "ack") > ((servers.size() + f) / 2))
-			ackList.clear();
+		// TODO send Message, receive acks, communicate to servers to actually
+		// save the Message!
+		// if (Collections.frequency(ackList, "ack") > ((servers.size() + f) /
+		// 2))
+		// ackList.clear();
 	}
 
 	/*
@@ -181,13 +173,34 @@ public class ClientManager implements PasswordManager {
 		Message m = new Message(pubk, hash_d, hash_u, nonce, deviceId, timeStamp);
 		String serialized_message = CryptoFunctions.serialize(m);
 		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
+		Password pw = null;
+		boolean valid = false;
 		for (Server s : servers.values()) {
-			m = ClientConnections.get(s.getTarget(), serialized_message, signed_message);
-			if (!CryptoFunctions.verifySignature(m.getPassword(), m.getPasswordSignature(), s.getPubKey())) {
-				throw new InvalidSignatureException();
+			JSONObject json;
+
+			json = ClientConnections.get(s.getTarget(), serialized_message, signed_message);
+			String serializedMsg = (String) json.get("message");
+			m = (Message) CryptoFunctions.desSerialize((String) json.get("message"));
+			byte[] signature = ((String) json.get("signature")).getBytes();
+			pw = m.getPassword();
+			// byte[] pduSignature = CryptoFunctions.sign_data(
+			// (new String(hash_d) + new String(hash_u) + new
+			// String(pw.getPassword())).getBytes(), privk);
+			 valid=true;
+			if (!CryptoFunctions.verifySignature(
+					(new String(hash_d) + new String(hash_u) + new String(pw.getPassword())).getBytes(),
+					pw.getPasswordSignature(), pubk)) {
+				valid = false;
 			}
+
+			if (!CryptoFunctions.verifySignature(serializedMsg.getBytes(), signature, s.getPubKey())) {
+				valid = false;
+			}
+
 		}
-		return CryptoFunctions.decrypt_data_asymmetric(m.getPassword(), privk);
+		if (!valid)
+			return null;
+		return CryptoFunctions.decrypt_data_asymmetric(pw.getPassword(), privk);
 
 	}
 

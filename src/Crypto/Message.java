@@ -13,9 +13,8 @@ public class Message  implements Serializable{
 	private byte[] domain;
 	private byte[] username;
 	private String deviceId;
-	private byte[] password;
+	private Password password;
 	private byte[] nonce;
-	private byte[] passwordSignature;
 	private long timeStamp;
 	
 	private void init(PublicKey pubKey,byte[] nonce,String deviceId){
@@ -28,7 +27,7 @@ public class Message  implements Serializable{
 		
 	}
 
-	public Message(PublicKey pubKey,byte[] domain, byte[] username,byte[] password, byte[] nonce,String deviceId, long timeStamp){
+	public Message(PublicKey pubKey,byte[] domain, byte[] username,Password password, byte[] nonce,String deviceId, long timeStamp){
 		this.init(pubKey,nonce, deviceId);
 		this.domain=domain;
 		this.username=username;
@@ -57,7 +56,7 @@ public class Message  implements Serializable{
 	public byte[] getUsername() {
 		return username;
 	}
-	public byte[] getPassword() {
+	public Password getPassword() {
 		return password;
 	}
 	
@@ -68,12 +67,9 @@ public class Message  implements Serializable{
 		return deviceId;
 	}
 
-	public void setPassword(byte[] password,byte[] passwordSignature) {
+	public void setPassword(Password password) {
 		this.password=password;
-		this.passwordSignature=passwordSignature;
-	}
-	public byte[] getPasswordSignature(){
-		return this.passwordSignature;
+		
 	}
 	
 }
