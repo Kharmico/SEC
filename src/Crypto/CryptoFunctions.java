@@ -36,15 +36,15 @@ public class CryptoFunctions {
 	private static final int ASSYM_K_GEN_BYTES = 2048;
 	private static final int IV_SIZE = 16;
 
-	public static void setJcePolicy() {
-		try {
-			Field field = Class.forName("javax.crypto.JceSecurity").getDeclaredField("isRestricted");
-			field.setAccessible(true);
-			field.set(null, java.lang.Boolean.FALSE);
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		}
-	}
+//	public static void setJcePolicy() {
+//		try {
+//			Field field = Class.forName("javax.crypto.JceSecurity").getDeclaredField("isRestricted");
+//			field.setAccessible(true);
+//			field.set(null, java.lang.Boolean.FALSE);
+//		} catch (Exception ex) {
+//			ex.printStackTrace();
+//		}
+//	}
 
 	public static byte[] decrypt_data_symmetric(byte[] encData, Key k)
 			throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException,

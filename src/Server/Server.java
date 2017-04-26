@@ -80,7 +80,7 @@ public class Server {
 		manager = args.length > 1 ? new Manager(args[2], args[1].toCharArray(), port)
 				: new Manager(DEFAULT_KS_PASSWORD.getPassword(), port);
 
-		CryptoFunctions.setJcePolicy();
+//		CryptoFunctions.setJcePolicy();
 		// InetAddress s = localhostAddress();
 		// String myUrl = String.format("http://%s:%s/",
 		// s.getCanonicalHostName(), PORT);

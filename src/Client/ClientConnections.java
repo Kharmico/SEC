@@ -71,8 +71,7 @@ public class ClientConnections {
 			throws ClassNotFoundException, IOException {
 		JSONObject j = ClientConnections.createJson(message, signature_message);
 		String json = URLEncoder.encode(j.toJSONString(), "UTF-8");
-		j = target.path(String.format("/Server/Get/%s/", json)).request().accept(MediaType.APPLICATION_JSON)
-				.get(JSONObject.class);
+		j = target.path(String.format("/Server/Get/%s/", json)).request().accept(MediaType.APPLICATION_JSON).get(JSONObject.class);
 		return j;
 	}
 

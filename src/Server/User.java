@@ -43,7 +43,11 @@ public class User implements Serializable{
 			if(password.getTimeStamp() > userNames.get(u).getTimeStamp()){
 				userNames.put(u, password);
 				this.userTriples.put(d,userNames);
-			}	
+			}
+		}
+		else {
+			userNames.put(u, password);
+			this.userTriples.put(d,userNames);
 		}
 	}
 
@@ -56,9 +60,7 @@ public class User implements Serializable{
 		Password aux =userNames.get(u);
 		if (aux==null)
 			throw new UsernameNotFoundException();
-		
 		return aux;
-
 	}
 	
 	public Map<ByteArrayWrapper, Hashtable<ByteArrayWrapper, Password>> getTriples(){

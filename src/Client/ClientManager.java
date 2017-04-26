@@ -67,7 +67,7 @@ public class ClientManager implements PasswordManager {
 		ackList = new ArrayList<String>(servers.size());
 		readList = new ArrayList<Password>(servers.size());
 		deviceId = new String(Base64.getEncoder().encode(result.toString().getBytes()));
-		CryptoFunctions.setJcePolicy();
+//		CryptoFunctions.setJcePolicy();
 	}
 
 	/*
@@ -87,6 +87,7 @@ public class ClientManager implements PasswordManager {
 		for (Server s : servers.values()) {
 			URI u = new URI(s.getUrl());
 			u.getPort();
+			System.out.println("URI AND PORT: " + u + " " + u.getPort());
 			PublicKey serverPubKey = KeyStoreFunc.getPublicKeyCertificate(String.format(CERT_PATH, u.getPort()));
 			s.setPubKey(serverPubKey);
 		}
@@ -149,10 +150,18 @@ public class ClientManager implements PasswordManager {
 			if (r.getStatus() == 200)
 				ackList.add(count, "ack");
 			count++;
+			System.out.println("GETTING STATUS STATUS: " + r.getStatus());
 		}
 		// TODO send Message, receive acks, communicate to servers to actually
 		// save the Message!
-		if (Collections.frequency(ackList, "ack") > ((servers.size() + f) / 2))
+		int countAcks = 0;
+		for(String acks : ackList) {
+			System.out.println("COUNTING ACKS: " + acks);
+			if(acks.equals("ack"))
+				countAcks++;
+		}
+		
+		if (countAcks > ((servers.size() + f) / 2))
 			ackList.clear();
 		else {
 			ackList.clear();
@@ -193,10 +202,10 @@ public class ClientManager implements PasswordManager {
 			// byte[] pduSignature = CryptoFunctions.sign_data(
 			// (new String(hash_d) + new String(hash_u) + new
 			// String(pw.getPassword())).getBytes(), privk);
-			if (!CryptoFunctions.verifySignature(serializedMsg.getBytes(), signature, s.getPubKey())) {
-				if (CryptoFunctions.verifySignature((new String(hash_d) + new String(hash_u) + new String(pw.getPassword())).getBytes(),
-					pw.getPasswordSignature(), pubk)) {
-				readList.add(pw);
+			if (CryptoFunctions.verifySignature(serializedMsg.getBytes(), signature, s.getPubKey())) {
+				if (CryptoFunctions.verifySignature((new String(hash_d) + new String(hash_u) + 
+						new String(pw.getPassword())).getBytes(),pw.getPasswordSignature(), pubk)) {
+					readList.add(pw);
 				}
 			}
 		}
@@ -206,6 +215,9 @@ public class ClientManager implements PasswordManager {
 			if(password != null)
 				passwordAux++;
 		}
+		
+		System.out.println("PASSWORDAUX VALUE (counter): " + passwordAux);
+		
 		Password pwAux = null;
 		if (passwordAux > ((servers.size() + f) / 2)) {
 			long tsAux = 0;
@@ -220,6 +232,8 @@ public class ClientManager implements PasswordManager {
 			readList.clear();
 			return CryptoFunctions.decrypt_data_asymmetric(pwAux.getPassword(), privk);
 		}
+		
+		System.out.println("PWAUX VALUE (in case of null): " + pwAux);
 		throw new NullByzantineQuorumException("Not enough correct servers!");
 	}
 
