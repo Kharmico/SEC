@@ -11,16 +11,17 @@ public class Password implements Serializable{
 	private byte[] username;
 	private byte[] password;
 	private byte[] pduSignature;
+	private long timeStamp;
 
 	public Password() {
 	}
 
-	public Password(byte[] domain, byte[] username, byte[] password, byte[] pduSignature) {
+	public Password(byte[] domain, byte[] username, byte[] password, byte[] pduSignature, long timeStamp) {
 		this.domain=domain;
 		this.username=username;
 		this.password=password;
 		this.pduSignature=pduSignature;
-
+		this.timeStamp = timeStamp;
 	}
 
 	public byte[] getDomain() {
@@ -54,6 +55,28 @@ public class Password implements Serializable{
 	public void setPasswordSignature(byte[] passwordSignature) {
 		this.pduSignature = passwordSignature;
 	}
-
+	
+	public long getTimeStamp() {
+		return this.timeStamp;
+	}
+	
+	public void setTimeStamp(long timeStamp){
+		this.timeStamp = timeStamp;
+	}
+	
+	@Override
+	public boolean equals(Object obj){
+		if (obj == null) return false;
+		if (obj == this) return true;		
+		
+		if(obj instanceof Password) {
+			Password objAux = (Password) obj;
+			if(objAux.getDomain().equals(this.domain) && objAux.getPassword().equals(this.password) && 
+					objAux.getUsername().equals(this.username) && objAux.getPasswordSignature().equals(this.pduSignature))
+				return true;
+			else return false;
+		}
+		return false;
+	}
 	
 }

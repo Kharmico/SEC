@@ -10,6 +10,8 @@ import Crypto.CryptoFunctions;
 import Crypto.KeyStoreFunc;
 import Crypto.Message;
 import Crypto.Password;
+import Exceptions.NullByzantineQuorumException;
+
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -17,6 +19,7 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -34,13 +37,13 @@ public class ClientManager implements PasswordManager {
 	private static final String CERT_PATH = System.getProperty("user.dir") + "\\Resources\\serversec%s.cer";
 
 	// nServers = servers.size()
-	// private int f = 1;
-	// private int thriceFault = 0;
-	// private int twiceFault = 0;
-	// private int writeId = 0;
-	// private int readId = 0;
-	// private static ArrayList<String> ackList;
-	// private static ArrayList<Integer> readList;
+	private int f = 1;
+	private int thriceFault = 0;
+	private int twiceFault = 0;
+	private int writeId = 0;
+	private int readId = 0;
+	private static ArrayList<String> ackList;
+	private static ArrayList<Password> readList;
 
 	private KeyStore ks = null;
 	// private static final String KEY_ALIAS = "serversec";
@@ -59,10 +62,10 @@ public class ClientManager implements PasswordManager {
 		int Low = 1;
 		int High = 100;
 		Integer result = r.nextInt(High - Low) + Low;
-		// thriceFault = f * 3 + 1;
-		// twiceFault = f * 2 + 1;
-		// ackList = new ArrayList<String>(servers.size());
-		// readList = new ArrayList<Integer>(servers.size());
+		thriceFault = f * 3 + 1;
+		twiceFault = f * 2 + 1;
+		ackList = new ArrayList<String>(servers.size());
+		readList = new ArrayList<Password>(servers.size());
 		deviceId = new String(Base64.getEncoder().encode(result.toString().getBytes()));
 		CryptoFunctions.setJcePolicy();
 	}
@@ -127,31 +130,34 @@ public class ClientManager implements PasswordManager {
 		String salt = this.getSalt();
 		// FIXME: timestam em sistemas distribuidos nunca podem ser o wall
 		// clock, relogios logicos sff!
-		long timeStamp = System.currentTimeMillis();
+		writeId++;
+//		long timeStamp = System.currentTimeMillis();
 		byte[] hash_d = CryptoFunctions.getHashMessage((new String(domain) + salt).getBytes());
 		byte[] hash_u = CryptoFunctions.getHashMessage((new String(username) + salt).getBytes());
 		byte[] pduSignature = CryptoFunctions
 				.sign_data((new String(hash_d) + new String(hash_u) + new String(cypher_p)).getBytes(), privk);
-		Password pw = new Password(hash_d, hash_u, cypher_p, pduSignature);
-		Message m = new Message(pubk, hash_d, hash_u, pw, nonce, deviceId, timeStamp);
+		Password pw = new Password(hash_d, hash_u, cypher_p, pduSignature, writeId);
+		Message m = new Message(pubk, hash_d, hash_u, pw, nonce, deviceId, writeId);
 		String serialized_message = CryptoFunctions.serialize(m);
 		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
 		int count = 0;
-		// ackList = new ArrayList<String>(servers.size());
+		ackList = new ArrayList<String>(servers.size());
 		for (Server s : servers.values()) {
 			// TODO only writes after a previous connection with the server to
 			// receive an ack?
-			// writeId++;
 			Response r = ClientConnections.put(s.getTarget(), serialized_message, signed_message);
-			// if (r.getStatus() == 200)
-			// ackList.add(count, "ack");
-			// count++;
+			if (r.getStatus() == 200)
+				ackList.add(count, "ack");
+			count++;
 		}
 		// TODO send Message, receive acks, communicate to servers to actually
 		// save the Message!
-		// if (Collections.frequency(ackList, "ack") > ((servers.size() + f) /
-		// 2))
-		// ackList.clear();
+		if (Collections.frequency(ackList, "ack") > ((servers.size() + f) / 2))
+			ackList.clear();
+		else {
+			ackList.clear();
+			throw new NullByzantineQuorumException("Not enough correct servers!");
+		}
 	}
 
 	/*
@@ -166,6 +172,7 @@ public class ClientManager implements PasswordManager {
 		// Get the public key to send!!!
 		PrivateKey privk = KeyStoreFunc.getPrivateKey(ks, CLIENT_PAIR_ALIAS, ksPassword);
 		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, CLIENT_PAIR_ALIAS);
+		readId++;
 		String salt = this.getSalt();
 		long timeStamp = System.currentTimeMillis();
 		byte[] hash_d = CryptoFunctions.getHashMessage((new String(domain) + salt).getBytes());
@@ -186,22 +193,34 @@ public class ClientManager implements PasswordManager {
 			// byte[] pduSignature = CryptoFunctions.sign_data(
 			// (new String(hash_d) + new String(hash_u) + new
 			// String(pw.getPassword())).getBytes(), privk);
-			 valid=true;
-			if (!CryptoFunctions.verifySignature(
-					(new String(hash_d) + new String(hash_u) + new String(pw.getPassword())).getBytes(),
-					pw.getPasswordSignature(), pubk)) {
-				valid = false;
-			}
-
 			if (!CryptoFunctions.verifySignature(serializedMsg.getBytes(), signature, s.getPubKey())) {
-				valid = false;
+				if (CryptoFunctions.verifySignature((new String(hash_d) + new String(hash_u) + new String(pw.getPassword())).getBytes(),
+					pw.getPasswordSignature(), pubk)) {
+				readList.add(pw);
+				}
 			}
-
 		}
-		if (!valid)
-			return null;
-		return CryptoFunctions.decrypt_data_asymmetric(pw.getPassword(), privk);
-
+		
+		int passwordAux = 0;
+		for(Password password : readList){
+			if(password != null)
+				passwordAux++;
+		}
+		Password pwAux = null;
+		if (passwordAux > ((servers.size() + f) / 2)) {
+			long tsAux = 0;
+			for(Password password : readList){
+				if(password != null) {
+					if(tsAux < password.getTimeStamp()) {
+						tsAux = password.getTimeStamp();
+						pwAux = password;
+					}
+				}
+			}
+			readList.clear();
+			return CryptoFunctions.decrypt_data_asymmetric(pwAux.getPassword(), privk);
+		}
+		throw new NullByzantineQuorumException("Not enough correct servers!");
 	}
 
 	@Override

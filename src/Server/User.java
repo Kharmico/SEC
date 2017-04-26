@@ -34,12 +34,17 @@ public class User implements Serializable{
 		ByteArrayWrapper d = new ByteArrayWrapper(domain);
 		ByteArrayWrapper u = new ByteArrayWrapper(username);
 //		ByteArrayWrapper p = new ByteArrayWrapper(password);
-		
+				
 		Hashtable<ByteArrayWrapper, Password> userNames = this.userTriples.get(d);
 		if (userNames == null)
 			userNames = new Hashtable<ByteArrayWrapper, Password>();
-		userNames.put(u, password);
-		this.userTriples.put(d,userNames);
+		
+		if(password.equals(userNames.get(u))) {
+			if(password.getTimeStamp() > userNames.get(u).getTimeStamp()){
+				userNames.put(u, password);
+				this.userTriples.put(d,userNames);
+			}	
+		}
 	}
 
 	public Password get(byte[] domain, byte[] username) throws UsernameNotFoundException, DomainNotFoundException {
