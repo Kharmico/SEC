@@ -66,6 +66,10 @@ public class Message  implements Serializable{
 	public String getDeviceId() {
 		return deviceId;
 	}
+	
+	public long getTimeStamp() {
+		return timeStamp;
+	}
 
 	public void setPassword(Password password) {
 		this.password=password;

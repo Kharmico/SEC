@@ -129,10 +129,8 @@ public class ClientManager implements PasswordManager {
 		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, CLIENT_PAIR_ALIAS);
 		byte[] cypher_p = CryptoFunctions.encrypt_data_asymmetric(password, pubk);
 		String salt = this.getSalt();
-		// FIXME: timestam em sistemas distribuidos nunca podem ser o wall
-		// clock, relogios logicos sff!
+		
 		writeId++;
-//		long timeStamp = System.currentTimeMillis();
 		byte[] hash_d = CryptoFunctions.getHashMessage((new String(domain) + salt).getBytes());
 		byte[] hash_u = CryptoFunctions.getHashMessage((new String(username) + salt).getBytes());
 		byte[] pduSignature = CryptoFunctions
@@ -144,16 +142,13 @@ public class ClientManager implements PasswordManager {
 		int count = 0;
 		ackList = new ArrayList<String>(servers.size());
 		for (Server s : servers.values()) {
-			// TODO only writes after a previous connection with the server to
-			// receive an ack?
 			Response r = ClientConnections.put(s.getTarget(), serialized_message, signed_message);
 			if (r.getStatus() == 200)
 				ackList.add(count, "ack");
 			count++;
 			System.out.println("GETTING STATUS STATUS: " + r.getStatus());
 		}
-		// TODO send Message, receive acks, communicate to servers to actually
-		// save the Message!
+		
 		int countAcks = 0;
 		for(String acks : ackList) {
 			System.out.println("COUNTING ACKS: " + acks);
@@ -181,12 +176,12 @@ public class ClientManager implements PasswordManager {
 		// Get the public key to send!!!
 		PrivateKey privk = KeyStoreFunc.getPrivateKey(ks, CLIENT_PAIR_ALIAS, ksPassword);
 		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, CLIENT_PAIR_ALIAS);
+		
 		readId++;
 		String salt = this.getSalt();
-		long timeStamp = System.currentTimeMillis();
 		byte[] hash_d = CryptoFunctions.getHashMessage((new String(domain) + salt).getBytes());
 		byte[] hash_u = CryptoFunctions.getHashMessage((new String(username) + salt).getBytes());
-		Message m = new Message(pubk, hash_d, hash_u, nonce, deviceId, timeStamp);
+		Message m = new Message(pubk, hash_d, hash_u, nonce, deviceId, readId);
 		String serialized_message = CryptoFunctions.serialize(m);
 		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
 		Password pw = null;
@@ -202,10 +197,12 @@ public class ClientManager implements PasswordManager {
 			// byte[] pduSignature = CryptoFunctions.sign_data(
 			// (new String(hash_d) + new String(hash_u) + new
 			// String(pw.getPassword())).getBytes(), privk);
-			if (CryptoFunctions.verifySignature(serializedMsg.getBytes(), signature, s.getPubKey())) {
-				if (CryptoFunctions.verifySignature((new String(hash_d) + new String(hash_u) + 
-						new String(pw.getPassword())).getBytes(),pw.getPasswordSignature(), pubk)) {
-					readList.add(pw);
+			if(readId == m.getTimeStamp()) {
+				if (CryptoFunctions.verifySignature(serializedMsg.getBytes(), signature, s.getPubKey())) {
+					if (CryptoFunctions.verifySignature((new String(hash_d) + new String(hash_u) + 
+							new String(pw.getPassword())).getBytes(),pw.getPasswordSignature(), pubk)) {
+						readList.add(pw);
+					}
 				}
 			}
 		}

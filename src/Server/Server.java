@@ -148,7 +148,7 @@ public class Server {
 		JSONObject json;
 		try {
 			json = getJason(param);
-			json = getJason(param);
+			
 			Message m = this.checkSignature(json);
 			Password password = manager.get(m.getPubKey(), m.getDomain(), m.getUsername());
 			m.setPassword(password);
@@ -157,9 +157,6 @@ public class Server {
 			byte[] signedMessage = CryptoFunctions.sign_data(serialized_m.getBytes(), manager.getServerPrivateKey());
 			json.put("message", serialized_m);
 			json.put("signature",new String( signedMessage));
-			
-
-			
 			
 			return Response.ok(json).build();
 		} catch (Exception e1) {
