@@ -80,7 +80,7 @@ public class Server {
 		manager = args.length > 1 ? new Manager(args[2], args[1].toCharArray(), port)
 				: new Manager(DEFAULT_KS_PASSWORD.getPassword(), port);
 
-//		CryptoFunctions.setJcePolicy();
+		// CryptoFunctions.setJcePolicy();
 		// InetAddress s = localhostAddress();
 		// String myUrl = String.format("http://%s:%s/",
 		// s.getCanonicalHostName(), PORT);
@@ -93,46 +93,71 @@ public class Server {
 		System.out.println("Server is running");
 	}
 
-	@POST
-	@Path("/Register")
-	@Consumes(MediaType.APPLICATION_JSON)
-	public Response register(String param) {
+	@SuppressWarnings("unchecked")
+	@GET
+	@Path("/Register/{json}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response register(@PathParam("json") String param) {
 		System.out.println("Register called");
 		System.out.println(param);
 
-		JSONObject json;
+		JSONObject json = null;
+		Message m = new Message();
+		int status = 0;
 		try {
 			json = getJason(param);
-			Message m = this.checkSignature(json);
+			m = this.checkSignature(json);
 			manager.register(m.getPubKey());
-			return Response.status(200).build();
+
+			json = new JSONObject();
+			String serialized_m = CryptoFunctions.serialize(m);
+			byte[] signedMessage = CryptoFunctions.sign_data(serialized_m.getBytes(), manager.getServerPrivateKey());
+			json.put("message", serialized_m);
+			json.put("signature", new String(signedMessage));
+			status = OK;
+
 		} catch (UserAlreadyRegisteredException u) {
 			u.printStackTrace();
-			return Response.status(400).build();
-		} catch (Exception e1) {
-			e1.printStackTrace();
-			return Response.status(400).build();
-		}
+			status = BAD_REQUEST;
 
+		} catch (Exception e1) {
+			status = BAD_REQUEST;
+		}
+		json.put("status", status);
+		return Response.ok(json).build();
 	}
 
-	@POST
-	@Path("/Put")
-	@Consumes(MediaType.APPLICATION_JSON)
-	public Response put(String param) {
+	@SuppressWarnings("unchecked")
+	@GET
+	@Path("/Put/{json}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response put(@PathParam("json") String param) {
 		System.out.println("Put called");
 		System.out.println("Json " + param);
 
-		JSONObject json;
+		JSONObject json = null;
+		Message m = new Message();
+		int status = 0;
 		try {
 			json = getJason(param);
-			Message m = this.checkSignature(json);
+			m = this.checkSignature(json);
 			manager.put(m.getPubKey(), m.getDomain(), m.getUsername(), m.getPassword());
-			return Response.status(200).build();
+
+			json = new JSONObject();
+
+			String serialized_m = CryptoFunctions.serialize(m);
+			byte[] signedMessage = CryptoFunctions.sign_data(serialized_m.getBytes(), manager.getServerPrivateKey());
+			json.put("message", serialized_m);
+			json.put("signature", new String(signedMessage));
+			status = OK;
+		} catch (UserAlreadyRegisteredException u) {
+			u.printStackTrace();
+			status = BAD_REQUEST;
 		} catch (Exception e1) {
-			e1.printStackTrace();
-			return Response.status(400).build();
+			status = BAD_REQUEST;
 		}
+		json.put("status", status);
+		return Response.ok(json).build();
 
 	}
 
@@ -145,25 +170,31 @@ public class Server {
 		System.out.println("Get called");
 		System.out.println("Json " + param);
 
-		JSONObject json;
+		JSONObject json = null;
+		Message m = new Message();
+		int status = 0;
 		try {
 			json = getJason(param);
-			
-			Message m = this.checkSignature(json);
+
+			m = this.checkSignature(json);
 			Password password = manager.get(m.getPubKey(), m.getDomain(), m.getUsername());
 			m.setPassword(password);
 			String serialized_m = CryptoFunctions.serialize(m);
-			json= new JSONObject();
+			json = new JSONObject();
+
 			byte[] signedMessage = CryptoFunctions.sign_data(serialized_m.getBytes(), manager.getServerPrivateKey());
 			json.put("message", serialized_m);
-			json.put("signature",new String( signedMessage));
-			
-			return Response.ok(json).build();
+			json.put("signature", new String(signedMessage));
+			status = OK;
+		} catch (UserAlreadyRegisteredException u) {
+			u.printStackTrace();
+			status = BAD_REQUEST;
 		} catch (Exception e1) {
 			e1.printStackTrace();
-			return Response.status(400).build();
+			status = BAD_REQUEST;
 		}
-
+		json.put("status", status);
+		return Response.ok(json).build();
 	}
 
 	private JSONObject getJason(String param) throws ParseException {

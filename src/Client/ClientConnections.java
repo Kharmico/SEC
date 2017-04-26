@@ -6,7 +6,10 @@ package Client;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+import java.security.SignatureException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -35,44 +38,18 @@ import Exceptions.ConectionFailedException;
  */
 public class ClientConnections {
 
-	// public static final String SERVER_URL = "http://localhost:9000";
-//	public static final int OK = 200;
-//	public static final int BAD_REQUEST = 400;
-
-	// para teste usamos um vvalor random para identificar o dispositivo na
-	// pratica deveria ser um ip adress
-	// public ClientConnections(String[] urls) {
-	// this.servers = new HashMap<String, Server>();
-	// for (int i = 0; i < urls.length; i++) {
-	// this.servers.put(urls[i], new ServerClass(urls[i]));
-	// }
-	//
-	// }
-	// public Map<String,Server> getServers(){
-	// return this.servers;
-	// }
-
-	public static Response register(WebTarget target, String message, byte[] signature_message)
-			throws ConectionFailedException {
-		JSONObject j = ClientConnections.createJson(message, signature_message);
-		return target.path(String.format("/Server/Register")).request().accept(MediaType.APPLICATION_JSON)
-				.post(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
-	}
-
-	public static Response put(WebTarget target, String message, byte[] signature_message) {
-		JSONObject j = ClientConnections.createJson(message, signature_message);
-
-		return target.path(String.format("/Server/Put")).request().accept(MediaType.APPLICATION_JSON)
-				.post(Entity.entity(j.toJSONString(), MediaType.APPLICATION_JSON));
+	public static Message register(Server s, String message, byte[] signature_message) {
+		return ClientConnections.connect(s, message, signature_message, "Register");
 
 	}
 
-	public static JSONObject get(WebTarget target, String message, byte[] signature_message)
-			throws ClassNotFoundException, IOException {
-		JSONObject j = ClientConnections.createJson(message, signature_message);
-		String json = URLEncoder.encode(j.toJSONString(), "UTF-8");
-		j = target.path(String.format("/Server/Get/%s/", json)).request().accept(MediaType.APPLICATION_JSON).get(JSONObject.class);
-		return j;
+	public static Message put(Server s, String message, byte[] signature_message) {
+		return ClientConnections.connect(s, message, signature_message, "Put");
+
+	}
+
+	public static Message get(Server s, String message, byte[] signature_message) {
+		return ClientConnections.connect(s, message, signature_message, "Get");
 	}
 
 	@SuppressWarnings("unchecked")
@@ -83,11 +60,23 @@ public class ClientConnections {
 		return j;
 	}
 
-//	private static void checkStatus(Response res) {
-//		if (res.getStatus() == BAD_REQUEST)
-//			throw new BadRequestException();
-//		if (res.getStatus() != OK)
-//			throw new ConectionFailedException();
-//	}
+	private static Message connect(Server s, String message, byte[] signature_message, String webResource) {
+		try {
+			JSONObject j = ClientConnections.createJson(message, signature_message);
 
+			String json = URLEncoder.encode(j.toJSONString(), "UTF-8");
+			j = s.getTarget().path(String.format("/Server/%s/%s/", webResource, json)).request()
+					.accept(MediaType.APPLICATION_JSON).get(JSONObject.class);
+			String serialized_message = (String) j.get("message");
+			byte[] signature = ((String) j.get("signature")).getBytes();
+			if (CryptoFunctions.verifySignature(serialized_message.getBytes(), signature, s.getPubKey())) {
+				Message m = ((Message) CryptoFunctions.desSerialize(serialized_message));
+				m.setStatus((int) j.get("status"));
+				return m;
+			}
+		} catch (Exception e) {
+
+		}
+		return null;
+	}
 }

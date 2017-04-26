@@ -16,6 +16,7 @@ public class Message  implements Serializable{
 	private Password password;
 	private byte[] nonce;
 	private long timeStamp;
+	private int status;
 	
 	private void init(PublicKey pubKey,byte[] nonce,String deviceId){
 		this.pubKey=pubKey;
@@ -33,6 +34,14 @@ public class Message  implements Serializable{
 		this.username=username;
 		this.password=password;
 		this.timeStamp = timeStamp;
+	}
+	public Message(PublicKey pubKey,byte[] domain, byte[] username,Password password, byte[] nonce,String deviceId, long timeStamp,int status){
+		this.init(pubKey,nonce, deviceId);
+		this.domain=domain;
+		this.username=username;
+		this.password=password;
+		this.timeStamp = timeStamp;
+		this.status=status;
 	}
 		
 	
@@ -74,6 +83,14 @@ public class Message  implements Serializable{
 	public void setPassword(Password password) {
 		this.password=password;
 		
+	}
+
+	public int getStatus() {
+		return status;
+	}
+
+	public void setStatus(int status) {
+		this.status = status;
 	}
 	
 }

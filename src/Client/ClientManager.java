@@ -37,7 +37,7 @@ public class ClientManager implements PasswordManager {
 	private static final String CERT_PATH = System.getProperty("user.dir") + "\\Resources\\serversec%s.cer";
 
 	// nServers = servers.size()
-	private int f = 1;
+	private int f = -1;
 	private int thriceFault = 0;
 	private int twiceFault = 0;
 	private int writeId = 0;
@@ -110,7 +110,7 @@ public class ClientManager implements PasswordManager {
 		String serialized_message = CryptoFunctions.serialize(m);
 		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
 		for (Server s : servers.values()) {
-			ClientConnections.register(s.getTarget(), serialized_message, signed_message);
+			ClientConnections.register(s, serialized_message, signed_message);
 		}
 
 	}
@@ -142,7 +142,7 @@ public class ClientManager implements PasswordManager {
 		int count = 0;
 		ackList = new ArrayList<String>(servers.size());
 		for (Server s : servers.values()) {
-			Response r = ClientConnections.put(s.getTarget(), serialized_message, signed_message);
+			Message r = ClientConnections.put(s, serialized_message, signed_message);
 			if (r.getStatus() == 200)
 				ackList.add(count, "ack");
 			count++;
@@ -187,23 +187,24 @@ public class ClientManager implements PasswordManager {
 		Password pw = null;
 		boolean valid = false;
 		for (Server s : servers.values()) {
-			JSONObject json;
-
-			json = ClientConnections.get(s.getTarget(), serialized_message, signed_message);
-			String serializedMsg = (String) json.get("message");
-			m = (Message) CryptoFunctions.desSerialize((String) json.get("message"));
-			byte[] signature = ((String) json.get("signature")).getBytes();
+//			JSONObject json;
+//
+//			json = ClientConnections.get(s.getTarget(), serialized_message, signed_message);
+//			String serializedMsg = (String) json.get("message");
+//			m = (Message) CryptoFunctions.desSerialize((String) json.get("message"));
+//			byte[] signature = ((String) json.get("signature")).getBytes();
+			m=ClientConnections.get(s, serialized_message, signed_message);
 			pw = m.getPassword();
 			// byte[] pduSignature = CryptoFunctions.sign_data(
 			// (new String(hash_d) + new String(hash_u) + new
 			// String(pw.getPassword())).getBytes(), privk);
 			if(readId == m.getTimeStamp()) {
-				if (CryptoFunctions.verifySignature(serializedMsg.getBytes(), signature, s.getPubKey())) {
+//				if (CryptoFunctions.verifySignature(serializedMsg.getBytes(), signature, s.getPubKey())) {
 					if (CryptoFunctions.verifySignature((new String(hash_d) + new String(hash_u) + 
 							new String(pw.getPassword())).getBytes(),pw.getPasswordSignature(), pubk)) {
 						readList.add(pw);
 					}
-				}
+//				}
 			}
 		}
 		
