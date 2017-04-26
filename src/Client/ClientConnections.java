@@ -69,8 +69,10 @@ public class ClientConnections {
 					.accept(MediaType.APPLICATION_JSON).get(JSONObject.class);
 			String serialized_message = (String) j.get("message");
 			byte[] signature = ((String) j.get("signature")).getBytes();
+			
 			if (CryptoFunctions.verifySignature(serialized_message.getBytes(), signature, s.getPubKey())) {
 				Message m = ((Message) CryptoFunctions.desSerialize(serialized_message));
+				CryptoFunctions.getHashMessage(m.getNounce());
 				m.setStatus((int) j.get("status"));
 				return m;
 			}

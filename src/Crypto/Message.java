@@ -14,14 +14,14 @@ public class Message  implements Serializable{
 	private byte[] username;
 	private String deviceId;
 	private Password password;
-	private byte[] nonce;
+	private byte[] nounce;
 	private long timeStamp;
 	private int status;
 	
-	private void init(PublicKey pubKey,byte[] nonce,String deviceId){
+	private void init(PublicKey pubKey,byte[] nounce,String deviceId){
 		this.pubKey=pubKey;
 		this.deviceId=deviceId;
-		this.nonce=nonce;
+		this.nounce=nounce;
 	}
 	
 	public Message(){
@@ -70,7 +70,7 @@ public class Message  implements Serializable{
 	}
 	
 	public byte[] getNounce() {
-		return nonce;
+		return nounce;
 	}
 	public String getDeviceId() {
 		return deviceId;
@@ -91,6 +91,10 @@ public class Message  implements Serializable{
 
 	public void setStatus(int status) {
 		this.status = status;
+	}
+
+	public void setNounce(byte[] nonce) {
+		this.nounce = nonce;
 	}
 	
 }

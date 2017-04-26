@@ -113,7 +113,8 @@ public class Server {
 			json = getJason(param);
 			m = this.checkSignature(json);
 			manager.register(m.getPubKey());
-
+			byte[] nonce = CryptoFunctions.generateNonce();
+			m.setNounce(nonce);
 			json = new JSONObject();
 			String serialized_m = CryptoFunctions.serialize(m);
 			byte[] signedMessage = CryptoFunctions.sign_data(serialized_m.getBytes(), manager.getServerPrivateKey());
@@ -149,7 +150,8 @@ public class Server {
 			manager.put(m.getPubKey(), m.getDomain(), m.getUsername(), m.getPassword());
 
 			json = new JSONObject();
-
+			byte[] nonce = CryptoFunctions.generateNonce();
+			m.setNounce(nonce);
 			String serialized_m = CryptoFunctions.serialize(m);
 			byte[] signedMessage = CryptoFunctions.sign_data(serialized_m.getBytes(), manager.getServerPrivateKey());
 			json.put("message", serialized_m);
@@ -184,6 +186,8 @@ public class Server {
 			m = this.checkSignature(json);
 			Password password = manager.get(m.getPubKey(), m.getDomain(), m.getUsername());
 			m.setPassword(password);
+			byte[] nonce = CryptoFunctions.generateNonce();
+			m.setNounce(nonce);
 			String serialized_m = CryptoFunctions.serialize(m);
 			json = new JSONObject();
 
