@@ -20,6 +20,9 @@ import java.security.PublicKey;
 import java.security.SignatureException;
 import java.util.Base64;
 import java.util.Enumeration;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import javax.crypto.KeyAgreement;
 import javax.crypto.SecretKey;
@@ -66,6 +69,7 @@ public class Server {
 	// this password should be passed as parameter when server boots
 	private static PasswordProtection DEFAULT_KS_PASSWORD = new PasswordProtection("a26tUfrGg4e4LHX".toCharArray());
 	private static Manager manager;
+	private static ConcurrentMap<ByteArrayWrapper,ByteArrayWrapper> nounces;
 
 	public Server() {
 	}
@@ -90,6 +94,7 @@ public class Server {
 		ResourceConfig config = new ResourceConfig();
 		config.register(Server.class);
 		HttpServer server = JdkHttpServerFactory.createHttpServer(baseUri, config);
+		nounces= new ConcurrentHashMap<ByteArrayWrapper,ByteArrayWrapper>();
 		System.out.println("Server is running");
 	}
 
@@ -242,6 +247,11 @@ public class Server {
 		// .digest automatically makes the checksums
 		// checkFreesheness
 		CryptoFunctions.getHashMessage(m.getNounce());
+		if(nounces.containsKey((new ByteArrayWrapper(m.getNounce())))){
+			throw new NullPointerException("no freshness");
+		}else{
+			nounces.put((new ByteArrayWrapper(m.getNounce())), (new ByteArrayWrapper(m.getNounce())));
+		}
 		return m;
 	}
 
