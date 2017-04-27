@@ -6,6 +6,8 @@ package Server;
 import java.io.Serializable;
 import java.security.Key;
 import java.util.Hashtable;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import Crypto.Password;
@@ -20,9 +22,11 @@ public class User implements Serializable{
 	private ByteArrayWrapper pubKey;
 //domain /user/pass
 	private Map<ByteArrayWrapper, Hashtable<ByteArrayWrapper, Password>> userTriples;
+	private List<Password>history;
 
 	public User(ByteArrayWrapper pubKey) {
 		this.pubKey = pubKey;
+		this.history=new LinkedList<Password>();
 		this.userTriples = new Hashtable<ByteArrayWrapper,Hashtable<ByteArrayWrapper, Password>>();
 	}
 
@@ -36,19 +40,27 @@ public class User implements Serializable{
 //		ByteArrayWrapper p = new ByteArrayWrapper(password);
 				
 		Hashtable<ByteArrayWrapper, Password> userNames = this.userTriples.get(d);
-		if (userNames == null)
+		if (userNames == null){
 			userNames = new Hashtable<ByteArrayWrapper, Password>();
+			
+		}
 		
 		if(password.equals(userNames.get(u))) {
 			if(password.getTimeStamp() > userNames.get(u).getTimeStamp()){
 				userNames.put(u, password);
 				this.userTriples.put(d,userNames);
+				this.history.add(password);
 			}
 		}
 		else {
 			userNames.put(u, password);
 			this.userTriples.put(d,userNames);
+			this.history.add(password);
 		}
+	}
+	
+	public List<Password> getPasswords(){
+		return this.history;
 	}
 
 	public Password get(byte[] domain, byte[] username) throws UsernameNotFoundException, DomainNotFoundException {
