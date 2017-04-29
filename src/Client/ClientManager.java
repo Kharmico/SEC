@@ -40,8 +40,9 @@ public class ClientManager implements PasswordManager {
 	private int f = -1;
 	private int thriceFault = 0;
 	private int twiceFault = 0;
-	private int writeId = 0;
-	private int readId = 0;
+//	private int ts=0;
+	private int wts = 0;
+	private int rid = 0;
 	private static ArrayList<String> ackList;
 	private static ArrayList<Password> readList;
 
@@ -110,6 +111,7 @@ public class ClientManager implements PasswordManager {
 		String serialized_message = CryptoFunctions.serialize(m);
 		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
 		for (Server s : servers.values()) {
+			//TODO: check acks to know that we  servidores suficientes
 			ClientConnections.register(s, serialized_message, signed_message);
 		}
 
@@ -130,20 +132,20 @@ public class ClientManager implements PasswordManager {
 		byte[] cypher_p = CryptoFunctions.encrypt_data_asymmetric(password, pubk);
 		String salt = this.getSalt();
 		
-		writeId++;
+		wts++;
 		byte[] hash_d = CryptoFunctions.getHashMessage((new String(domain) + salt).getBytes());
 		byte[] hash_u = CryptoFunctions.getHashMessage((new String(username) + salt).getBytes());
 		byte[] pduSignature = CryptoFunctions
-				.sign_data((new String(hash_d) + new String(hash_u) + new String(cypher_p)).getBytes(), privk);
-		Password pw = new Password(hash_d, hash_u, cypher_p, pduSignature, writeId);
-		Message m = new Message(pubk, hash_d, hash_u, pw, nonce, deviceId, writeId);
+				.sign_data((new String(hash_d) + new String(hash_u) + new String(cypher_p)+Integer.toHexString(wts)).getBytes(), privk);
+		Password pw = new Password(hash_d, hash_u, cypher_p, pduSignature, wts);
+		Message m = new Message(pubk, hash_d, hash_u, pw, nonce, deviceId, wts);
 		String serialized_message = CryptoFunctions.serialize(m);
 		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
 		int count = 0;
 		ackList = new ArrayList<String>(servers.size());
 		for (Server s : servers.values()) {
 			Message r = ClientConnections.put(s, serialized_message, signed_message);
-			if (r.getStatus() == 200)
+			if (r.getStatus() == 200 && r.getTimeStamp()==wts)
 				ackList.add(count, "ack");
 			count++;
 			System.out.println("GETTING STATUS STATUS: " + r.getStatus());
@@ -177,31 +179,21 @@ public class ClientManager implements PasswordManager {
 		PrivateKey privk = KeyStoreFunc.getPrivateKey(ks, CLIENT_PAIR_ALIAS, ksPassword);
 		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, CLIENT_PAIR_ALIAS);
 		
-		readId++;
+		rid++;
 		String salt = this.getSalt();
 		byte[] hash_d = CryptoFunctions.getHashMessage((new String(domain) + salt).getBytes());
 		byte[] hash_u = CryptoFunctions.getHashMessage((new String(username) + salt).getBytes());
-		Message m = new Message(pubk, hash_d, hash_u, nonce, deviceId, readId);
+		Message m = new Message(pubk, hash_d, hash_u, nonce, deviceId, rid);
 		String serialized_message = CryptoFunctions.serialize(m);
 		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
 		Password pw = null;
-		boolean valid = false;
 		for (Server s : servers.values()) {
-//			JSONObject json;
-//
-//			json = ClientConnections.get(s.getTarget(), serialized_message, signed_message);
-//			String serializedMsg = (String) json.get("message");
-//			m = (Message) CryptoFunctions.desSerialize((String) json.get("message"));
-//			byte[] signature = ((String) json.get("signature")).getBytes();
 			m=ClientConnections.get(s, serialized_message, signed_message);
 			pw = m.getPassword();
-			// byte[] pduSignature = CryptoFunctions.sign_data(
-			// (new String(hash_d) + new String(hash_u) + new
-			// String(pw.getPassword())).getBytes(), privk);
-			if(readId == m.getTimeStamp()) {
+			if(rid == m.getTimeStamp()) {
 //				if (CryptoFunctions.verifySignature(serializedMsg.getBytes(), signature, s.getPubKey())) {
 					if (CryptoFunctions.verifySignature((new String(hash_d) + new String(hash_u) + 
-							new String(pw.getPassword())).getBytes(),pw.getPasswordSignature(), pubk)) {
+							new String(pw.getPassword())+Integer.toHexString(wts)).getBytes(),pw.getPasswordSignature(), pubk)) {
 						readList.add(pw);
 					}
 //				}
