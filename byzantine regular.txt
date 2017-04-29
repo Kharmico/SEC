@@ -1,0 +1,98 @@
+The idea behind the following “Authenticated-Data Byzantine Quorum” algorithm,
+shown in Algorithm 4.15, is for the writer to sign the timestamp/value
+pair and to store it together with the signature at the processes. The writer authenticates
+the data with its signature. The reader verifies the signature on each
+timestamp/value pair received in a VALUE message and ignores those with invalid
+signatures.
+only the clients, i.e., the reader and the writer, need to perform cryptographic
+digital signature operations; the server processes simply store the signatures
+When the reader obtains VALUE messages from more than
+(N + f)/2 processes, at least one of thesemessage originates from a correct process
+and contains wts, v, and a valid signature from p.
+OPTIMAL RESILIENCE:  N>3f
+
+Single register shared by all processes
+read()->returns value
+write(value) -> returns ACK
+value associated with processid(sequence numbers) and timestamp(ts)
+
+assume ritheous formula: N-f > (N+f)/2
+ACKlist shared only with the client, one ack for each request (each server)
+theta = actual data sent
+auth-data quorum:
+init: ts = 0, val = null, theta = null
+	write = 0;
+	acklist[]->size of N
+	read = 0
+	readlist[]->size of N
+
+write:
+	write = write + 1
+	acklist[] -> size of N
+	theta = sign(wts, value)
+	for each process q:
+		send q->toallN->Write(wts, v, theta)
+
+write when p = w
+	if ts' > ts:
+		ts, val, theta = ts', val', theta'
+	send p->toallN->ACK(ts')
+
+#verify if write was successfully done (done by client)
+write when ts' = wts
+	acklist[qprocess] = ACK
+	if #ACKS in acklist > (N + f)/2:
+		acklist[] = null
+		write -> complete write operation in register
+
+read(client side):
+	rid = rid+1
+	readlist[]
+	for each q in qlist:
+		send q->toAllN->Read(rid)
+
+read basic server return side
+	send real value(ts, val, theta)
+
+verify read client side
+	if verifysig(write(ts', value', theta')
+		update readlist[qprocess] = (ts', value')
+		if #readlist > (N+f)/2
+			value = max(readlist)
+			readlist[] = null
+			return read(value)
+		
+
+code from last year:
+private int faultyServers = 1;
+private int nServers = faultyServers*3 + 1;
+private int quorum = faultyServers*2 + 1;
+private int sequence_id = 1;
+
+int i = 0;
+      int[] quorumResponses = new int[4];
+      int[] checkArray = new int[4];
+      Arrays.fill(checkArray, 0);
+      while(i < quorum){
+          if(!(t1.isAlive()) && checkArray[0]!= 1){
+            quorumResponses[i] = 0;
+            i++;
+            checkArray[0] = 1;
+          }
+          if(!(t2.isAlive()) && checkArray[1]!= 1){
+            quorumResponses[i] = 1;
+            i++;
+            checkArray[1] = 1;
+          }
+          if(!(t3.isAlive()) && checkArray[2]!= 1){
+            quorumResponses[i] = 2;
+            i++;
+            checkArray[2] = 1;
+          }
+          if(!(t4.isAlive()) && checkArray[3]!= 1){
+            quorumResponses[i] = 3;
+            i++;
+            checkArray[3] = 1;
+          }
+
+      sequence_id++; 

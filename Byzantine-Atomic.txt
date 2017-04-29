@@ -1,0 +1,93 @@
+atomic register(1,N)-non byzantine (similar):
+-additional new safety property
+- if a read retunrs a value v and a subsequent read returns w, then the write of w does not precede the write of v
+-behaviour of the replicated register is the same as that of a non-replicated register
+-write algorithm is the same as the regular register
+-add write-back phase after reading
+ie: reader helps the concurrent write by completing it in a quorum before returning->say wut??
+	read algorithm :
+		Read() at pi:
+			-send [READ, rid] to all
+			-wait until receiving [VALUErid, tsj, vj] from majority
+			-<v,t> = vj with the highest timestamp tsj
+			-send [WRITE,t,v] to all
+			-wait until receiving [ACK,t] from a majority
+			return v
+
+byzantine atomic:
+Problem: a reader obtains the same reply
+value from a Byzantine quorum of processes. But as the writer may concurrently
+write a new timestamp/value pair to the processes, not all correct processes may
+send back the same values.
+Solution: every process maintains set of listeners, which are reader processes of which it knows that they execute a
+read operation concurrently. Whenever the process receives another WRITE message
+with a new timestamp/value pair, it forwards the message immediately to all
+registered listeners. Listening array represents the listener processes.
+When listening[p] = ?, then
+process p is not registered as a listener; when listening[p] = r for some number r,
+then process p is registered as listener for its read operation with tag r.
+Reader informs all processes when it completes the read operation.
+a server serves alistener, the servers must know which one is functioning as a listener, so it is implemented as a "Master"
+alhough it it may not be that same server that returns the values to the client, this server returns the correct values
+to the other servers (I THINK)
+
+Pseudocode:
+Write
+init:
+	ts = 0, val = null
+	wts = 0
+	acklist[] -> size of N
+	rid = 0
+	listening[] -> size of N
+	for each (time>0):
+		 answers[time] = null -> size of N
+	
+Request: Invokes a write operation with value v on the register.
+Executed only by process w:
+	wts++
+	acklist[] -> size of N
+	for each qserver in pi(serverList):
+		write(wts, v)
+
+write when p = w (client is the writer)
+	if ts' > ts:
+		ts = ts'
+		val = v'
+	for each qserver in pi
+		if listening[qprocess] != null
+			send->qprocess(oldvalue, listening[qprocess], ts, val)
+	send->pprocess(ACK, ts)
+
+#verify if write was successfully done (done by client)
+write when ts' = wts
+	acklist[qprocess] = ACK
+	if #ACKS in acklist > (N + f)/2:
+		acklist[] = null
+		write -> complete write operation in register
+
+Read
+	rid++
+	for each (tprocess>0)
+		answerslist[time] = null
+	for each qprocess in pi:
+		send q->toAllN->Read(rid)
+
+read basic server return side (process->p READ-> r)
+	listening[pprocess] = r
+	send real value(r, ts, val)
+
+client side verification:
+read when r = rid (process->q, r, ts', v' used)
+	if answerslist[ts'][q] = null
+		answers[ts'][q]  = v'
+		if (#answers[time][pprocess] = v) > (N+f)/2:
+			for each time > 0  //its time' in pseudo
+				answers[time] = null  //its answers[time'] in pseudo
+			for each qprocess in pi       //its qprocess' in pseudo
+				send(qprocess)   //qprocess' in pseudo
+				ReadComplete
+			return v
+
+clean listener when ReadComplete r = listening[pprocess]
+	listenning[pprocess] = null
+
