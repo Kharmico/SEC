@@ -220,6 +220,39 @@ public class ClientManager implements PasswordManager {
 				}
 			}
 			readList.clear();
+			
+			nonce = CryptoFunctions.generateNonce();
+			hash_d = pwAux.getDomain();
+			hash_u = pwAux.getUsername();
+			long pwWts = pwAux.getTimeStamp();
+			
+			m = new Message(pubk, hash_d, hash_u, pwAux, nonce, deviceId, pwWts);
+			serialized_message = CryptoFunctions.serialize(m);
+			signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
+			int count = 0;
+			ackList = new ArrayList<String>(servers.size());
+			for (Server s : servers.values()) {
+				Message r = ClientConnections.put(s, serialized_message, signed_message);
+				if (r.getStatus() == 200 && r.getTimeStamp()==wts)
+					ackList.add(count, "ack");
+				count++;
+				System.out.println("GETTING STATUS STATUS: " + r.getStatus());
+			}
+			
+			int countAcks = 0;
+			for(String acks : ackList) {
+				System.out.println("COUNTING ACKS: " + acks);
+				if(acks.equals("ack"))
+					countAcks++;
+			}
+			
+			if (countAcks > ((servers.size() + f) / 2))
+				ackList.clear();
+			else {
+				ackList.clear();
+				throw new NullByzantineQuorumException("Not enough correct servers!");
+			}
+			
 			return CryptoFunctions.decrypt_data_asymmetric(pwAux.getPassword(), privk);
 		}
 		
