@@ -84,6 +84,7 @@ public class Manager {
 	public Manager(char[] ksPassword,int port) throws Exception {
 		this.manegerImpl(ksPassword);
 		String s =String.format(KS_PATH, port);
+		
 		this.ks = KeyStoreFunc.loadKeyStore(String.format(KS_PATH, port), ksPassword, SERVER_PAIR_ALIAS);
 	}
 	public Manager(String file, char[] ksPassword,int port) throws Exception {
@@ -141,7 +142,7 @@ public class Manager {
 	 */
 	// ---------------OLD FINITO-------------------------/
 
-	public void writeUsersFiles(SecretKey key)
+	public void writeUsersFiles()
 			throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException,
 			BadPaddingException, KeyStoreException, FileNotFoundException, IOException {
 
@@ -161,31 +162,20 @@ public class Manager {
 			}
 		}
 
-		// Initialize cipher object
-		Cipher aesCipher = Cipher.getInstance(CIPHER_ALG);
-		aesCipher.init(Cipher.ENCRYPT_MODE, key);
-		// Encrypt the cleartext
-		byte[] ciphertext = aesCipher.doFinal(cleartext);
-
 		// write to file
 		FileOutputStream o = new FileOutputStream(USERS_FILE);
-		o.write(ciphertext);
+		o.write(cleartext);
 		o.flush();
 		o.close();
 	}
 
-	public void readUsersFile(SecretKey key) throws NoSuchAlgorithmException, NoSuchPaddingException,
+	public void readUsersFile() throws NoSuchAlgorithmException, NoSuchPaddingException,
 			IllegalBlockSizeException, BadPaddingException, InvalidKeyException, ClassNotFoundException {
 		ConcurrentMap<ByteArrayWrapper, User> users = null;
 		try {
 			Path path = Paths.get(USERS_FILE);
-			byte[] ciphertext = Files.readAllBytes(path);
+			byte[] cleartext = Files.readAllBytes(path);
 
-			Cipher aesCipher = Cipher.getInstance(CIPHER_ALG);
-			// Initialize the same cipher for decryption
-			aesCipher.init(Cipher.DECRYPT_MODE, key);
-			// Decrypt the ciphertext
-			byte[] cleartext = aesCipher.doFinal(ciphertext);
 			ByteArrayInputStream in = new ByteArrayInputStream(cleartext);
 
 			ObjectInputStream is = new ObjectInputStream(in);

@@ -2,6 +2,7 @@ package Client;
 
 import java.io.IOException;
 import java.net.URI;
+import java.security.InvalidKeyException;
 import java.security.KeyStore;
 import java.security.KeyStore.PasswordProtection;
 import java.security.KeyStoreException;
@@ -16,10 +17,10 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.security.SignatureException;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -38,8 +39,8 @@ public class ClientManager implements PasswordManager {
 
 	// nServers = servers.size()
 	private int f = -1;
-	private int thriceFault = 0;
-	private int twiceFault = 0;
+//	private int thriceFault = 0;
+//	private int twiceFault = 0;
 //	private int ts=0;
 	private int wts = 0;
 	private int rid = 0;
@@ -63,8 +64,8 @@ public class ClientManager implements PasswordManager {
 		int Low = 1;
 		int High = 100;
 		Integer result = r.nextInt(High - Low) + Low;
-		thriceFault = f * 3 + 1;
-		twiceFault = f * 2 + 1;
+//		thriceFault = f * 3 + 1;
+//		twiceFault = f * 2 + 1;
 		ackList = new ArrayList<String>(servers.size());
 		readList = new ArrayList<Password>(servers.size());
 		deviceId = new String(Base64.getEncoder().encode(result.toString().getBytes()));
@@ -111,7 +112,7 @@ public class ClientManager implements PasswordManager {
 		String serialized_message = CryptoFunctions.serialize(m);
 		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
 		for (Server s : servers.values()) {
-			//TODO: check acks to know that we  servidores suficientes
+			//TODO: check acks to know that we have enough servers
 			ClientConnections.register(s, serialized_message, signed_message);
 		}
 
@@ -138,32 +139,8 @@ public class ClientManager implements PasswordManager {
 		byte[] pduSignature = CryptoFunctions
 				.sign_data((new String(hash_d) + new String(hash_u) + new String(cypher_p)+Integer.toHexString(wts)).getBytes(), privk);
 		Password pw = new Password(hash_d, hash_u, cypher_p, pduSignature, wts);
-		Message m = new Message(pubk, hash_d, hash_u, pw, nonce, deviceId, wts);
-		String serialized_message = CryptoFunctions.serialize(m);
-		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
-		int count = 0;
-		ackList = new ArrayList<String>(servers.size());
-		for (Server s : servers.values()) {
-			Message r = ClientConnections.put(s, serialized_message, signed_message);
-			if (r.getStatus() == 200 && r.getTimeStamp()==wts)
-				ackList.add(count, "ack");
-			count++;
-			System.out.println("GETTING STATUS STATUS: " + r.getStatus());
-		}
 		
-		int countAcks = 0;
-		for(String acks : ackList) {
-			System.out.println("COUNTING ACKS: " + acks);
-			if(acks.equals("ack"))
-				countAcks++;
-		}
-		
-		if (countAcks > ((servers.size() + f) / 2))
-			ackList.clear();
-		else {
-			ackList.clear();
-			throw new NullByzantineQuorumException("Not enough correct servers!");
-		}
+		sendMsgServers(pubk, privk, hash_d, hash_u, pw, nonce, deviceId, wts);
 	}
 
 	/*
@@ -178,9 +155,9 @@ public class ClientManager implements PasswordManager {
 		// Get the public key to send!!!
 		PrivateKey privk = KeyStoreFunc.getPrivateKey(ks, CLIENT_PAIR_ALIAS, ksPassword);
 		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, CLIENT_PAIR_ALIAS);
+		String salt = this.getSalt();
 		
 		rid++;
-		String salt = this.getSalt();
 		byte[] hash_d = CryptoFunctions.getHashMessage((new String(domain) + salt).getBytes());
 		byte[] hash_u = CryptoFunctions.getHashMessage((new String(username) + salt).getBytes());
 		Message m = new Message(pubk, hash_d, hash_u, nonce, deviceId, rid);
@@ -191,12 +168,10 @@ public class ClientManager implements PasswordManager {
 			m=ClientConnections.get(s, serialized_message, signed_message);
 			pw = m.getPassword();
 			if(rid == m.getTimeStamp()) {
-//				if (CryptoFunctions.verifySignature(serializedMsg.getBytes(), signature, s.getPubKey())) {
-					if (CryptoFunctions.verifySignature((new String(hash_d) + new String(hash_u) + 
-							new String(pw.getPassword())+Integer.toHexString(wts)).getBytes(),pw.getPasswordSignature(), pubk)) {
-						readList.add(pw);
-					}
-//				}
+				if (CryptoFunctions.verifySignature((new String(hash_d) + new String(hash_u) + 
+						new String(pw.getPassword())+Integer.toHexString(wts)).getBytes(),pw.getPasswordSignature(), pubk)) {
+					readList.add(pw);
+				}
 			}
 		}
 		
@@ -226,32 +201,7 @@ public class ClientManager implements PasswordManager {
 			hash_u = pwAux.getUsername();
 			long pwWts = pwAux.getTimeStamp();
 			
-			m = new Message(pubk, hash_d, hash_u, pwAux, nonce, deviceId, pwWts);
-			serialized_message = CryptoFunctions.serialize(m);
-			signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
-			int count = 0;
-			ackList = new ArrayList<String>(servers.size());
-			for (Server s : servers.values()) {
-				Message r = ClientConnections.put(s, serialized_message, signed_message);
-				if (r.getStatus() == 200 && r.getTimeStamp()==wts)
-					ackList.add(count, "ack");
-				count++;
-				System.out.println("GETTING STATUS STATUS: " + r.getStatus());
-			}
-			
-			int countAcks = 0;
-			for(String acks : ackList) {
-				System.out.println("COUNTING ACKS: " + acks);
-				if(acks.equals("ack"))
-					countAcks++;
-			}
-			
-			if (countAcks > ((servers.size() + f) / 2))
-				ackList.clear();
-			else {
-				ackList.clear();
-				throw new NullByzantineQuorumException("Not enough correct servers!");
-			}
+			sendMsgServers(pubk, privk, hash_d, hash_u, pwAux, nonce, deviceId, pwWts);
 			
 			return CryptoFunctions.decrypt_data_asymmetric(pwAux.getPassword(), privk);
 		}
@@ -275,5 +225,37 @@ public class ClientManager implements PasswordManager {
 		String aux = Base64.getEncoder().encodeToString(pubk.getEncoded());
 		return (String) aux.subSequence(0, Math.min(aux.length(), 10));
 	}
+	
+	private void sendMsgServers(PublicKey pubk, PrivateKey privk, byte[] hash_d, byte[] hash_u, Password pw, byte[] nonce, String deviceId, long wts) 
+			throws IOException, InvalidKeyException, NoSuchAlgorithmException, SignatureException{
+		
+		Message m = new Message(pubk, hash_d, hash_u, pw, nonce, deviceId, wts);
+		String serialized_message = CryptoFunctions.serialize(m);
+		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
+		int count = 0;
+		ackList = new ArrayList<String>(servers.size());
+		for (Server s : servers.values()) {
+			Message r = ClientConnections.put(s, serialized_message, signed_message);
+			if (r.getStatus() == 200 && r.getTimeStamp()==wts)
+				ackList.add(count, "ack");
+			count++;
+			System.out.println("GETTING STATUS STATUS: " + r.getStatus());
+		}
+		
+		int countAcks = 0;
+		for(String acks : ackList) {
+			System.out.println("COUNTING ACKS: " + acks);
+			if(acks.equals("ack"))
+				countAcks++;
+		}
+		
+		if (countAcks > ((servers.size() + f) / 2))
+			ackList.clear();
+		else {
+			ackList.clear();
+			throw new NullByzantineQuorumException("Not enough correct servers!");
+		}
+	}
+	
 
 }
