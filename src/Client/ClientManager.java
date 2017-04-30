@@ -42,8 +42,8 @@ public class ClientManager implements PasswordManager {
 //	private int thriceFault = 0;
 //	private int twiceFault = 0;
 //	private int ts=0;
-	private int wts = 0;
-	private int rid = 0;
+	private long wts = 0;
+	private long rid = 0;
 	private static ArrayList<String> ackList;
 	private static ArrayList<Password> readList;
 
@@ -137,7 +137,7 @@ public class ClientManager implements PasswordManager {
 		byte[] hash_d = CryptoFunctions.getHashMessage((new String(domain) + salt).getBytes());
 		byte[] hash_u = CryptoFunctions.getHashMessage((new String(username) + salt).getBytes());
 		byte[] pduSignature = CryptoFunctions
-				.sign_data((new String(hash_d) + new String(hash_u) + new String(cypher_p)+Integer.toHexString(wts)).getBytes(), privk);
+				.sign_data((new String(hash_d) + new String(hash_u) + new String(cypher_p)+Long.toHexString(wts)).getBytes(), privk);
 		Password pw = new Password(hash_d, hash_u, cypher_p, pduSignature, wts);
 		
 		sendMsgServers(pubk, privk, hash_d, hash_u, pw, nonce, deviceId, wts);
@@ -169,7 +169,8 @@ public class ClientManager implements PasswordManager {
 			pw = m.getPassword();
 			if(rid == m.getTimeStamp()) {
 				if (CryptoFunctions.verifySignature((new String(hash_d) + new String(hash_u) + 
-						new String(pw.getPassword())+Integer.toHexString(wts)).getBytes(),pw.getPasswordSignature(), pubk)) {
+						new String(pw.getPassword())+Long.toHexString(pw.getTimeStamp())).getBytes(),pw.getPasswordSignature(), pubk)) {
+					System.out.println("VERIFIED SIGNATURE WITH SUCCESS");
 					readList.add(pw);
 				}
 			}
@@ -179,6 +180,7 @@ public class ClientManager implements PasswordManager {
 		for(Password password : readList){
 			if(password != null)
 				passwordAux++;
+			else System.out.println("PASSWORD PASSWORD IS NULL");
 		}
 		
 		System.out.println("PASSWORDAUX VALUE (counter): " + passwordAux);

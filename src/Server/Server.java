@@ -95,7 +95,18 @@ public class Server {
 		config.register(Server.class);
 		HttpServer server = JdkHttpServerFactory.createHttpServer(baseUri, config);
 		nounces= new ConcurrentHashMap<ByteArrayWrapper,ByteArrayWrapper>();
+		manager.readUsersFile();
 		System.out.println("Server is running");
+		new Thread(()->{
+			try {
+				for(;;) {
+					manager.writeUsersFiles();
+					Thread.sleep(59*1000);
+				}
+			} catch (Exception e2) {
+				e2.printStackTrace();
+			}
+		}).start();
 	}
 
 	@SuppressWarnings("unchecked")

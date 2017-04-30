@@ -5,6 +5,7 @@ package Server;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -65,10 +66,12 @@ public class Manager {
 
 	private static final String SERVER_PAIR_ALIAS = "serversec";
 	private static final String KS_PATH = System.getProperty("user.dir") + "\\Resources\\KeyStore%s.jks";
-	public static final String USERS_FILE = System.getProperty("user.dir") + "\\Resources\\Users";
-
+	public static final String USERS_FILE = System.getProperty("user.dir") + "\\Resources\\%s\\Users";
+	public static final String DIR_PATH = System.getProperty("user.dir") + "\\Resources\\";
 	private static final String CIPHER_ALG = "AES/ECB/PKCS5Padding";
-
+	private static String dirPath;
+	private static String usersFile;
+	
 	int bitLength = 1024;
 	SecureRandom rnd = new SecureRandom();
 
@@ -83,17 +86,23 @@ public class Manager {
 
 	public Manager(char[] ksPassword,int port) throws Exception {
 		this.manegerImpl(ksPassword);
-		String s =String.format(KS_PATH, port);
-		
-		this.ks = KeyStoreFunc.loadKeyStore(String.format(KS_PATH, port), ksPassword, SERVER_PAIR_ALIAS);
+		String ksPath =String.format(KS_PATH, port);
+		dirPath = DIR_PATH.concat(String.valueOf(port));
+		usersFile = String.format(USERS_FILE, String.valueOf(port));
+		File directory = new File(dirPath);
+		if(!directory.exists())
+			directory.mkdir();
+
+		this.ks = KeyStoreFunc.loadKeyStore(ksPath, ksPassword, SERVER_PAIR_ALIAS);
 	}
+	
 	public Manager(String file, char[] ksPassword,int port) throws Exception {
-		this.manegerImpl(ksPassword);
-		
+		this.manegerImpl(ksPassword);		
 		this.ks = KeyStoreFunc.loadKeyStore(file, ksPassword, SERVER_PAIR_ALIAS);
 	}
+	
 	public void register(Key publicKey) throws UserAlreadyRegisteredException {
-		ByteArrayWrapper	pk = new ByteArrayWrapper(Base64.getEncoder().encode(publicKey.getEncoded()));
+		ByteArrayWrapper pk = new ByteArrayWrapper(Base64.getEncoder().encode(publicKey.getEncoded()));
 		if (this.users.containsKey(pk))
 			throw new UserAlreadyRegisteredException();
 		this.users.put(pk, new User(pk));
@@ -110,6 +119,7 @@ public class Manager {
 			throws UserNotRegisteredException, DomainNotFoundException, UsernameNotFoundException {
 
 		ByteArrayWrapper pk = new ByteArrayWrapper(Base64.getEncoder().encode(publicKey.getEncoded()));
+		
 		if (!this.users.containsKey(pk))
 			throw new UserNotRegisteredException();
 		return this.users.get(pk).get(domain, username);
@@ -163,7 +173,7 @@ public class Manager {
 		}
 
 		// write to file
-		FileOutputStream o = new FileOutputStream(USERS_FILE);
+		FileOutputStream o = new FileOutputStream(usersFile);
 		o.write(cleartext);
 		o.flush();
 		o.close();
@@ -173,7 +183,7 @@ public class Manager {
 			IllegalBlockSizeException, BadPaddingException, InvalidKeyException, ClassNotFoundException {
 		ConcurrentMap<ByteArrayWrapper, User> users = null;
 		try {
-			Path path = Paths.get(USERS_FILE);
+			Path path = Paths.get(usersFile);
 			byte[] cleartext = Files.readAllBytes(path);
 
 			ByteArrayInputStream in = new ByteArrayInputStream(cleartext);
@@ -182,6 +192,7 @@ public class Manager {
 			users = (ConcurrentHashMap<ByteArrayWrapper, User>) is.readObject();
 			in.close();
 		} catch (IOException i) {
+			System.out.println("CENAS MÁS ACONTECERAM AQUI!!!");
 			users = new ConcurrentHashMap<ByteArrayWrapper, User>();
 		} finally {
 			this.users = users;
