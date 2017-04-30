@@ -192,7 +192,7 @@ public class Manager {
 			users = (ConcurrentHashMap<ByteArrayWrapper, User>) is.readObject();
 			in.close();
 		} catch (IOException i) {
-			System.out.println("CENAS MÁS ACONTECERAM AQUI!!!");
+			System.out.println("File not found!");
 			users = new ConcurrentHashMap<ByteArrayWrapper, User>();
 		} finally {
 			this.users = users;
