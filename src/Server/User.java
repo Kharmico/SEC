@@ -46,7 +46,7 @@ public class User implements Serializable{
 		}
 		
 		if(password.equals(userNames.get(u))) {
-			if(password.getTimeStamp() > userNames.get(u).getTimeStamp()){
+			if(password.getTimeStamp() > userNames.get(u).getTimeStamp() || ((password.getDeviceId().compareTo(userNames.get(u).getDeviceId())) > 0)){
 				userNames.put(u, password);
 				this.userTriples.put(d,userNames);
 				this.history.add(password);

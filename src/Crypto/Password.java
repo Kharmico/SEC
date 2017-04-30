@@ -12,7 +12,8 @@ public class Password implements Serializable{
 	private byte[] password;
 	private byte[] pduSignature;
 	private long timeStamp;
-
+	private String deviceId;
+	
 	public Password() {
 	}
 
@@ -27,7 +28,10 @@ public class Password implements Serializable{
 	public byte[] getDomain() {
 		return domain;
 	}
-
+	
+	public String getDeviceId(){
+		return deviceId;
+	}
 	public void setDomain(byte[] domain) {
 		this.domain = domain;
 	}

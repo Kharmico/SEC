@@ -138,9 +138,54 @@ public class ClientManager implements PasswordManager {
 		byte[] hash_u = CryptoFunctions.getHashMessage((new String(username) + salt).getBytes());
 		byte[] pduSignature = CryptoFunctions
 				.sign_data((new String(hash_d) + new String(hash_u) + new String(cypher_p)+Long.toHexString(wts)).getBytes(), privk);
+		Message m = new Message(pubk, hash_d, hash_u, nonce, deviceId, rid);
 		Password pw = new Password(hash_d, hash_u, cypher_p, pduSignature, wts);
+		String serialized_message = CryptoFunctions.serialize(m);
+		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
+		//read first
+		for (Server s : servers.values()) {
+			m=ClientConnections.get(s, serialized_message, signed_message);
+			pw = m.getPassword();
+			if(rid == m.getTimeStamp()) {
+				if (CryptoFunctions.verifySignature((new String(hash_d) + new String(hash_u) + 
+						new String(pw.getPassword())+Long.toHexString(pw.getTimeStamp())).getBytes(),pw.getPasswordSignature(), pubk)) {
+					System.out.println("VERIFIED SIGNATURE WITH SUCCESS");
+					readList.add(pw);
+				}
+			}
+		}
 		
-		sendMsgServers(pubk, privk, hash_d, hash_u, pw, nonce, deviceId, wts);
+		int passwordAux = 0;
+		for(Password passwordAux2 : readList){
+			if(passwordAux2 != null)
+				passwordAux++;
+			else System.out.println("PASSWORD PASSWORD IS NULL");
+		}
+		
+		System.out.println("PASSWORDAUX VALUE (counter): " + passwordAux);
+		
+		Password pwAux = null;
+		if (passwordAux > ((servers.size() + f) / 2)) {
+			long tsAux = 0;
+			for(Password passwordAux2 : readList){
+				if(passwordAux2 != null) {
+					if(tsAux < passwordAux2.getTimeStamp()) {
+						tsAux = passwordAux2.getTimeStamp();
+						pwAux = passwordAux2;
+					}
+				}
+			}
+			readList.clear();
+			
+			nonce = CryptoFunctions.generateNonce();
+			hash_d = pwAux.getDomain();
+			hash_u = pwAux.getUsername();
+			long pwWts = pwAux.getTimeStamp();
+			
+			sendMsgServers(pubk, privk, hash_d, hash_u, pwAux, nonce, deviceId, pwWts);
+		//finish read
+		}
+		//sendMsgServers(pubk, privk, hash_d, hash_u, pw, nonce, deviceId, wts);
 	}
 
 	/*

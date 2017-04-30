@@ -76,7 +76,8 @@ public class ClientConnections {
 				m.setStatus((int) j.get("status"));
 				return m;
 			}
-		} catch (Exception e) {
+		} catch (Exception e){
+			e.printStackTrace();
 
 		}
 		return null;
