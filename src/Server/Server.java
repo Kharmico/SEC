@@ -15,9 +15,11 @@ import java.net.UnknownHostException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyStore.PasswordProtection;
+import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.SignatureException;
+import java.security.UnrecoverableEntryException;
 import java.util.Base64;
 import java.util.Enumeration;
 import java.util.Set;
@@ -113,24 +115,20 @@ public class Server {
 	@GET
 	@Path("/Register/{json}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response register(@PathParam("json") String param) {
+	public Response register(@PathParam("json") String param) throws IOException, InvalidKeyException, NoSuchAlgorithmException, SignatureException, UnrecoverableEntryException, KeyStoreException {
 		System.out.println("Register called");
 		System.out.println(param);
 
 		JSONObject json = null;
 		Message m = new Message();
+		String serialized_m = null;
+		byte[] signedMessage = null;
 		int status = 0;
 		try {
 			json = getJason(param);
 			m = this.checkSignature(json);
 			manager.register(m.getPubKey());
-			byte[] nonce = CryptoFunctions.generateNonce();
-			m.setNounce(nonce);
-			json = new JSONObject();
-			String serialized_m = CryptoFunctions.serialize(m);
-			byte[] signedMessage = CryptoFunctions.sign_data(serialized_m.getBytes(), manager.getServerPrivateKey());
-			json.put("message", serialized_m);
-			json.put("signature", new String(signedMessage));
+			
 			status = OK;
 
 		} catch (UserAlreadyRegisteredException u) {
@@ -140,6 +138,13 @@ public class Server {
 		} catch (Exception e1) {
 			status = BAD_REQUEST;
 		}
+		byte[] nonce = CryptoFunctions.generateNonce();
+		m.setNounce(nonce);
+		json = new JSONObject();
+		serialized_m = CryptoFunctions.serialize(m);
+		 signedMessage = CryptoFunctions.sign_data(serialized_m.getBytes(), manager.getServerPrivateKey());
+		json.put("message", serialized_m);
+		json.put("signature", new String(signedMessage));
 		json.put("status", status);
 		return Response.ok(json).build();
 	}
@@ -148,32 +153,34 @@ public class Server {
 	@GET
 	@Path("/Put/{json}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response put(@PathParam("json") String param) {
+	public Response put(@PathParam("json") String param) throws IOException, InvalidKeyException, NoSuchAlgorithmException, SignatureException, UnrecoverableEntryException, KeyStoreException {
 		System.out.println("Put called");
 		System.out.println("Json " + param);
 
 		JSONObject json = null;
 		Message m = new Message();
+		String serialized_m = null;
+		byte[] signedMessage = null;
 		int status = 0;
 		try {
 			json = getJason(param);
 			m = this.checkSignature(json);
 			manager.put(m.getPubKey(), m.getDomain(), m.getUsername(), m.getPassword());
-
-			json = new JSONObject();
-			byte[] nonce = CryptoFunctions.generateNonce();
-			m.setNounce(nonce);
-			String serialized_m = CryptoFunctions.serialize(m);
-			byte[] signedMessage = CryptoFunctions.sign_data(serialized_m.getBytes(), manager.getServerPrivateKey());
-			json.put("message", serialized_m);
-			json.put("signature", new String(signedMessage));
 			status = OK;
 		} catch (UserAlreadyRegisteredException u) {
 			u.printStackTrace();
 			status = BAD_REQUEST;
 		} catch (Exception e1) {
 			status = BAD_REQUEST;
+			e1.printStackTrace();
 		}
+		json = new JSONObject();
+		byte[] nonce = CryptoFunctions.generateNonce();
+		m.setNounce(nonce);
+		 serialized_m = CryptoFunctions.serialize(m);
+		 signedMessage = CryptoFunctions.sign_data(serialized_m.getBytes(), manager.getServerPrivateKey());
+		json.put("message", serialized_m);
+		json.put("signature", new String(signedMessage));
 		json.put("status", status);
 		return Response.ok(json).build();
 
@@ -183,13 +190,15 @@ public class Server {
 	@GET
 	@Path("/Get/{json}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response get(@PathParam("json") String param) {
+	public Response get(@PathParam("json") String param) throws IOException, InvalidKeyException, NoSuchAlgorithmException, SignatureException, UnrecoverableEntryException, KeyStoreException {
 
 		System.out.println("Get called");
 		System.out.println("Json " + param);
 
 		JSONObject json = null;
 		Message m = new Message();
+		String serialized_m = null;
+		byte[] signedMessage = null;
 		int status = 0;
 		try {
 			json = getJason(param);
@@ -197,14 +206,7 @@ public class Server {
 			m = this.checkSignature(json);
 			Password password = manager.get(m.getPubKey(), m.getDomain(), m.getUsername());
 			m.setPassword(password);
-			byte[] nonce = CryptoFunctions.generateNonce();
-			m.setNounce(nonce);
-			String serialized_m = CryptoFunctions.serialize(m);
-			json = new JSONObject();
-
-			byte[] signedMessage = CryptoFunctions.sign_data(serialized_m.getBytes(), manager.getServerPrivateKey());
-			json.put("message", serialized_m);
-			json.put("signature", new String(signedMessage));
+			
 			status = OK;
 		} catch (UserAlreadyRegisteredException u) {
 			u.printStackTrace();
@@ -213,6 +215,14 @@ public class Server {
 			e1.printStackTrace();
 			status = BAD_REQUEST;
 		}
+		byte[] nonce = CryptoFunctions.generateNonce();
+		m.setNounce(nonce);
+		 serialized_m = CryptoFunctions.serialize(m);
+		json = new JSONObject();
+
+		signedMessage = CryptoFunctions.sign_data(serialized_m.getBytes(), manager.getServerPrivateKey());
+		json.put("message", serialized_m);
+		json.put("signature", new String(signedMessage));
 		json.put("status", status);
 		return Response.ok(json).build();
 	}

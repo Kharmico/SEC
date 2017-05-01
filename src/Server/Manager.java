@@ -103,8 +103,8 @@ public class Manager {
 	
 	public void register(Key publicKey) throws UserAlreadyRegisteredException {
 		ByteArrayWrapper pk = new ByteArrayWrapper(Base64.getEncoder().encode(publicKey.getEncoded()));
-		if (this.users.containsKey(pk))
-			throw new UserAlreadyRegisteredException();
+//		if (this.users.containsKey(pk))
+//			throw new UserAlreadyRegisteredException();
 		this.users.put(pk, new User(pk));
 	}
 

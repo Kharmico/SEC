@@ -39,9 +39,9 @@ public class ClientManager implements PasswordManager {
 
 	// nServers = servers.size()
 	private int f = -1;
-//	private int thriceFault = 0;
-//	private int twiceFault = 0;
-//	private int ts=0;
+	// private int thriceFault = 0;
+	// private int twiceFault = 0;
+	// private int ts=0;
 	private long wts = 0;
 	private long rid = 0;
 	private static ArrayList<String> ackList;
@@ -64,12 +64,12 @@ public class ClientManager implements PasswordManager {
 		int Low = 1;
 		int High = 100;
 		Integer result = r.nextInt(High - Low) + Low;
-//		thriceFault = f * 3 + 1;
-//		twiceFault = f * 2 + 1;
+		// thriceFault = f * 3 + 1;
+		// twiceFault = f * 2 + 1;
 		ackList = new ArrayList<String>(servers.size());
 		readList = new ArrayList<Password>(servers.size());
 		deviceId = new String(Base64.getEncoder().encode(result.toString().getBytes()));
-//		CryptoFunctions.setJcePolicy();
+		// CryptoFunctions.setJcePolicy();
 	}
 
 	/*
@@ -112,7 +112,7 @@ public class ClientManager implements PasswordManager {
 		String serialized_message = CryptoFunctions.serialize(m);
 		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
 		for (Server s : servers.values()) {
-			//TODO: check acks to know that we have enough servers
+			// TODO: check acks to know that we have enough servers
 			ClientConnections.register(s, serialized_message, signed_message);
 		}
 
@@ -132,60 +132,66 @@ public class ClientManager implements PasswordManager {
 		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, CLIENT_PAIR_ALIAS);
 		byte[] cypher_p = CryptoFunctions.encrypt_data_asymmetric(password, pubk);
 		String salt = this.getSalt();
-		
+
 		wts++;
 		byte[] hash_d = CryptoFunctions.getHashMessage((new String(domain) + salt).getBytes());
 		byte[] hash_u = CryptoFunctions.getHashMessage((new String(username) + salt).getBytes());
-		byte[] pduSignature = CryptoFunctions
-				.sign_data((new String(hash_d) + new String(hash_u) + new String(cypher_p)+Long.toHexString(wts)).getBytes(), privk);
+		byte[] pduSignature = CryptoFunctions.sign_data(
+				(new String(hash_d) + new String(hash_u) + new String(cypher_p) + Long.toHexString(wts)).getBytes(),
+				privk);
 		Message m = new Message(pubk, hash_d, hash_u, nonce, deviceId, rid);
 		Password pw = new Password(hash_d, hash_u, cypher_p, pduSignature, wts);
 		String serialized_message = CryptoFunctions.serialize(m);
 		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
-		//read first
+		// read first
 		for (Server s : servers.values()) {
-			m=ClientConnections.get(s, serialized_message, signed_message);
-			pw = m.getPassword();
-			if(rid == m.getTimeStamp()) {
-				if (CryptoFunctions.verifySignature((new String(hash_d) + new String(hash_u) + 
-						new String(pw.getPassword())+Long.toHexString(pw.getTimeStamp())).getBytes(),pw.getPasswordSignature(), pubk)) {
-					System.out.println("VERIFIED SIGNATURE WITH SUCCESS");
-					readList.add(pw);
+			m = ClientConnections.get(s, serialized_message, signed_message);
+			if (validMessage(m)) {
+				pw = m.getPassword();
+				if (rid == m.getTimeStamp()) {
+					if (CryptoFunctions.verifySignature(
+							(new String(hash_d) + new String(hash_u) + new String(pw.getPassword())
+									+ Long.toHexString(pw.getTimeStamp())).getBytes(),
+							pw.getPasswordSignature(), pubk)) {
+						System.out.println("VERIFIED SIGNATURE WITH SUCCESS");
+						readList.add(pw);
+					}
 				}
 			}
 		}
-		
+
 		int passwordAux = 0;
-		for(Password passwordAux2 : readList){
-			if(passwordAux2 != null)
+		for (Password passwordAux2 : readList) {
+			if (passwordAux2 != null)
 				passwordAux++;
-			else System.out.println("PASSWORD PASSWORD IS NULL");
+			else
+				System.out.println("PASSWORD PASSWORD IS NULL");
 		}
-		
+
 		System.out.println("PASSWORDAUX VALUE (counter): " + passwordAux);
-		
+
 		Password pwAux = null;
 		if (passwordAux > ((servers.size() + f) / 2)) {
 			long tsAux = 0;
-			for(Password passwordAux2 : readList){
-				if(passwordAux2 != null) {
-					if(tsAux < passwordAux2.getTimeStamp()) {
+			for (Password passwordAux2 : readList) {
+				if (passwordAux2 != null) {
+					if (tsAux < passwordAux2.getTimeStamp()) {
 						tsAux = passwordAux2.getTimeStamp();
 						pwAux = passwordAux2;
 					}
 				}
 			}
 			readList.clear();
-			
+
 			nonce = CryptoFunctions.generateNonce();
 			hash_d = pwAux.getDomain();
 			hash_u = pwAux.getUsername();
-			long pwWts = pwAux.getTimeStamp();
-			
-			sendMsgServers(pubk, privk, hash_d, hash_u, pwAux, nonce, deviceId, pwWts);
-		//finish read
+			long pwWts = Math.max(pwAux.getTimeStamp(), wts);
+
+			sendMsgServers(pubk, privk, hash_d, hash_u, pwAux, deviceId, pwWts);
+			// finish read
 		}
-		//sendMsgServers(pubk, privk, hash_d, hash_u, pw, nonce, deviceId, wts);
+		sendMsgServers(pubk, privk, hash_d, hash_u, pw, deviceId, wts);
 	}
 
 	/*
@@ -201,7 +207,7 @@ public class ClientManager implements PasswordManager {
 		PrivateKey privk = KeyStoreFunc.getPrivateKey(ks, CLIENT_PAIR_ALIAS, ksPassword);
 		PublicKey pubk = KeyStoreFunc.getPublicKey(ks, CLIENT_PAIR_ALIAS);
 		String salt = this.getSalt();
-		
+
 		rid++;
 		byte[] hash_d = CryptoFunctions.getHashMessage((new String(domain) + salt).getBytes());
 		byte[] hash_u = CryptoFunctions.getHashMessage((new String(username) + salt).getBytes());
@@ -210,49 +216,54 @@ public class ClientManager implements PasswordManager {
 		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
 		Password pw = null;
 		for (Server s : servers.values()) {
-			m=ClientConnections.get(s, serialized_message, signed_message);
-			pw = m.getPassword();
-			if(rid == m.getTimeStamp()) {
-				if (CryptoFunctions.verifySignature((new String(hash_d) + new String(hash_u) + 
-						new String(pw.getPassword())+Long.toHexString(pw.getTimeStamp())).getBytes(),pw.getPasswordSignature(), pubk)) {
-					System.out.println("VERIFIED SIGNATURE WITH SUCCESS");
-					readList.add(pw);
+			m = ClientConnections.get(s, serialized_message, signed_message);
+			if (validMessage(m)) {
+				pw = m.getPassword();
+				if (rid == m.getTimeStamp()) {
+					if (CryptoFunctions.verifySignature(
+							(new String(hash_d) + new String(hash_u) + new String(pw.getPassword())
+									+ Long.toHexString(pw.getTimeStamp())).getBytes(),
+							pw.getPasswordSignature(), pubk)) {
+						System.out.println("VERIFIED SIGNATURE WITH SUCCESS");
+						readList.add(pw);
+					}
 				}
 			}
 		}
-		
+
 		int passwordAux = 0;
-		for(Password password : readList){
-			if(password != null)
+		for (Password password : readList) {
+			if (password != null)
 				passwordAux++;
-			else System.out.println("PASSWORD PASSWORD IS NULL");
+			else
+				System.out.println("PASSWORD PASSWORD IS NULL");
 		}
-		
+
 		System.out.println("PASSWORDAUX VALUE (counter): " + passwordAux);
-		
+
 		Password pwAux = null;
 		if (passwordAux > ((servers.size() + f) / 2)) {
 			long tsAux = 0;
-			for(Password password : readList){
-				if(password != null) {
-					if(tsAux < password.getTimeStamp()) {
+			for (Password password : readList) {
+				if (password != null) {
+					if (tsAux < password.getTimeStamp()) {
 						tsAux = password.getTimeStamp();
 						pwAux = password;
 					}
 				}
 			}
 			readList.clear();
-			
+
 			nonce = CryptoFunctions.generateNonce();
 			hash_d = pwAux.getDomain();
 			hash_u = pwAux.getUsername();
 			long pwWts = pwAux.getTimeStamp();
-			
-			sendMsgServers(pubk, privk, hash_d, hash_u, pwAux, nonce, deviceId, pwWts);
-			
+
+			sendMsgServers(pubk, privk, hash_d, hash_u, pwAux, deviceId, pwWts);
+
 			return CryptoFunctions.decrypt_data_asymmetric(pwAux.getPassword(), privk);
 		}
-		
+
 		System.out.println("PWAUX VALUE (in case of null): " + pwAux);
 		throw new NullByzantineQuorumException("Not enough correct servers!");
 	}
@@ -272,10 +283,10 @@ public class ClientManager implements PasswordManager {
 		String aux = Base64.getEncoder().encodeToString(pubk.getEncoded());
 		return (String) aux.subSequence(0, Math.min(aux.length(), 10));
 	}
-	
-	private void sendMsgServers(PublicKey pubk, PrivateKey privk, byte[] hash_d, byte[] hash_u, Password pw, byte[] nonce, String deviceId, long wts) 
-			throws IOException, InvalidKeyException, NoSuchAlgorithmException, SignatureException{
-		
+
+	private void sendMsgServers(PublicKey pubk, PrivateKey privk, byte[] hash_d, byte[] hash_u, Password pw, String deviceId, long wts)
+			throws IOException, InvalidKeyException, NoSuchAlgorithmException, SignatureException {
+		byte[] nonce = CryptoFunctions.generateNonce();
 		Message m = new Message(pubk, hash_d, hash_u, pw, nonce, deviceId, wts);
 		String serialized_message = CryptoFunctions.serialize(m);
 		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
@@ -283,19 +294,20 @@ public class ClientManager implements PasswordManager {
 		ackList = new ArrayList<String>(servers.size());
 		for (Server s : servers.values()) {
 			Message r = ClientConnections.put(s, serialized_message, signed_message);
-			if (r.getStatus() == 200 && r.getTimeStamp()==wts)
+			
+			if (r.getStatus() == 200 && r.getTimeStamp() == wts)
 				ackList.add(count, "ack");
 			count++;
 			System.out.println("GETTING STATUS STATUS: " + r.getStatus());
 		}
-		
+
 		int countAcks = 0;
-		for(String acks : ackList) {
+		for (String acks : ackList) {
 			System.out.println("COUNTING ACKS: " + acks);
-			if(acks.equals("ack"))
+			if (acks.equals("ack"))
 				countAcks++;
 		}
-		
+
 		if (countAcks > ((servers.size() + f) / 2))
 			ackList.clear();
 		else {
@@ -303,6 +315,9 @@ public class ClientManager implements PasswordManager {
 			throw new NullByzantineQuorumException("Not enough correct servers!");
 		}
 	}
-	
+
+	private boolean validMessage(Message m) {
+		return m != null && m.getPassword() != null && m.getNounce() != null;
+	}
 
 }
