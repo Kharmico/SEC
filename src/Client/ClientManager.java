@@ -147,31 +147,31 @@ public class ClientManager implements PasswordManager {
 		for (Server s : servers.values()) {
 			m = ClientConnections.get(s, serialized_message, signed_message);
 			if (validMessage(m)) {
-				pw = m.getPassword();
+				Password aux = m.getPassword();
 				if (rid == m.getTimeStamp()) {
 					if (CryptoFunctions.verifySignature(
-							(new String(hash_d) + new String(hash_u) + new String(pw.getPassword())
-									+ Long.toHexString(pw.getTimeStamp())).getBytes(),
-							pw.getPasswordSignature(), pubk)) {
+							(new String(hash_d) + new String(hash_u) + new String(aux.getPassword())
+									+ Long.toHexString(aux.getTimeStamp())).getBytes(),
+							aux.getPasswordSignature(), pubk)) {
 						System.out.println("VERIFIED SIGNATURE WITH SUCCESS");
-						readList.add(pw);
+						readList.add(aux);
 					}
 				}
 			}
 		}
 
-		int passwordAux = 0;
-		for (Password passwordAux2 : readList) {
-			if (passwordAux2 != null)
-				passwordAux++;
+		int countReplys = 0;
+		for (Password pass : readList) {
+			if (pass != null)
+				countReplys++;
 			else
 				System.out.println("PASSWORD PASSWORD IS NULL");
 		}
 
-		System.out.println("PASSWORDAUX VALUE (counter): " + passwordAux);
+		System.out.println("PASSWORDAUX VALUE (counter): " + countReplys);
 
 		Password pwAux = null;
-		if (passwordAux > ((servers.size() + f) / 2)) {
+		if (countReplys > ((servers.size() + f) / 2)) {
 			long tsAux = 0;
 			for (Password passwordAux2 : readList) {
 				if (passwordAux2 != null) {
@@ -187,8 +187,8 @@ public class ClientManager implements PasswordManager {
 			hash_d = pwAux.getDomain();
 			hash_u = pwAux.getUsername();
 			long pwWts = Math.max(pwAux.getTimeStamp(), wts);
-
-			sendMsgServers(pubk, privk, hash_d, hash_u, pwAux, deviceId, pwWts);
+			pw.setTimeStamp(pwWts);
+			sendMsgServers(pubk, privk, hash_d, hash_u, pw, deviceId, pwWts);
 			// finish read
 		}
 		sendMsgServers(pubk, privk, hash_d, hash_u, pw, deviceId, wts);
