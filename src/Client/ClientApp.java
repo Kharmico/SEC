@@ -28,7 +28,7 @@ public class ClientApp {
 	 */
 	public static void main(String[] args) throws Exception {
 		Scanner readIns = new Scanner(System.in);
-		ClientManager cman = new ClientManager(args);
+		ClientManager cman=null;
 //		KeyStoreFunc kstorefunc = new KeyStoreFunc();
 
 		// Variables to use for passing arguments for ClientManager. Must initialize them (give them a value)
@@ -49,6 +49,7 @@ public class ClientApp {
 					break;
 				case "init":
 					if(tokens.length == 3) {
+						cman= new ClientManager(args);
 						keystore = tokens[1];
 						ksPassword = tokens[2].toCharArray();
 						KeyStore ks = null;
