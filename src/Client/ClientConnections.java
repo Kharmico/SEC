@@ -5,6 +5,7 @@ package Client;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.ConnectException;
 import java.net.URLEncoder;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -61,6 +62,8 @@ public class ClientConnections {
 	}
 
 	private static Message connect(Server s, String message, byte[] signature_message, String webResource) {
+		Message m = new Message();
+		m.setStatus(400);
 		try {
 			JSONObject j = ClientConnections.createJson(message, signature_message);
 
@@ -69,17 +72,35 @@ public class ClientConnections {
 					.accept(MediaType.APPLICATION_JSON).get(JSONObject.class);
 			String serialized_message = (String) j.get("message");
 			byte[] signature = ((String) j.get("signature")).getBytes();
-			
+
 			if (CryptoFunctions.verifySignature(serialized_message.getBytes(), signature, s.getPubKey())) {
-				Message m = ((Message) CryptoFunctions.desSerialize(serialized_message));
+				m = ((Message) CryptoFunctions.desSerialize(serialized_message));
 				CryptoFunctions.getHashMessage(m.getNounce());
 				m.setStatus((int) j.get("status"));
 				return m;
 			}
-		} catch (Exception e){
-			e.printStackTrace();
+		} catch (ConnectException e) {
+			
 
+		} catch (UnsupportedEncodingException e) {
+
+		} catch (InvalidKeyException e) {
+
+		} catch (SignatureException e) {
+
+		} catch (NoSuchAlgorithmException e) {
+
+		} catch (ClassNotFoundException e) {
+
+		} catch (IOException e) {
+			
+		}catch(javax.ws.rs.ProcessingException e){
+			
+
+		}catch(Exception e){
+			System.out.println("excepção------------------------------");
+			//e.printStackTrace();
 		}
-		return null;
+		return m;
 	}
 }

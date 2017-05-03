@@ -22,6 +22,8 @@ import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -38,13 +40,13 @@ public class ClientManager implements PasswordManager {
 	private static final String CERT_PATH = System.getProperty("user.dir") + "\\Resources\\serversec%s.cer";
 
 	// nServers = servers.size()
-	private int f = -1;
+	private int f = 1;
 	// private int thriceFault = 0;
 	// private int twiceFault = 0;
 	// private int ts=0;
 	private long wts = 0;
 	private long rid = 0;
-	private static ArrayList<String> ackList;
+	private static List<String> ackList;
 	private static ArrayList<Password> readList;
 
 	private KeyStore ks = null;
@@ -290,25 +292,29 @@ public class ClientManager implements PasswordManager {
 		Message m = new Message(pubk, hash_d, hash_u, pw, nonce, deviceId, wts);
 		String serialized_message = CryptoFunctions.serialize(m);
 		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
-		int count = 0;
-		ackList = new ArrayList<String>(servers.size());
+//		int count = 0;
+		for(Server s:  servers.values()){
+			System.out.println(s.getUrl());
+		}
+		ackList = new LinkedList<String>();
+		assert(ackList.size()==servers.size());
 		for (Server s : servers.values()) {
 			Message r = ClientConnections.put(s, serialized_message, signed_message);
 			
 			if (r.getStatus() == 200 && r.getTimeStamp() == wts)
-				ackList.add(count, "ack");
-			count++;
+				ackList.add("ack");
+//			count++;
 			System.out.println("GETTING STATUS STATUS: " + r.getStatus());
 		}
 
-		int countAcks = 0;
-		for (String acks : ackList) {
-			System.out.println("COUNTING ACKS: " + acks);
-			if (acks.equals("ack"))
-				countAcks++;
-		}
+//		int countAcks = 0;
+//		for (String acks : ackList) {
+//			System.out.println("COUNTING ACKS: " + acks);
+//			if (acks.equals("ack"))
+//				countAcks++;
+//		}
 
-		if (countAcks > ((servers.size() + f) / 2))
+		if (ackList.size() > ((servers.size() + f) / 2))
 			ackList.clear();
 		else {
 			ackList.clear();
