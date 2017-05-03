@@ -31,6 +31,7 @@ import org.json.simple.JSONObject;
 
 import Crypto.CryptoFunctions;
 import Crypto.Message;
+import Crypto.IServer;
 import Exceptions.ConectionFailedException;
 
 /**
@@ -39,17 +40,17 @@ import Exceptions.ConectionFailedException;
  */
 public class ClientConnections {
 
-	public static Message register(Server s, String message, byte[] signature_message) {
+	public static Message register(IServer s, String message, byte[] signature_message) {
 		return ClientConnections.connect(s, message, signature_message, "Register");
 
 	}
 
-	public static Message put(Server s, String message, byte[] signature_message) {
+	public static Message put(IServer s, String message, byte[] signature_message) {
 		return ClientConnections.connect(s, message, signature_message, "Put");
 
 	}
 
-	public static Message get(Server s, String message, byte[] signature_message) {
+	public static Message get(IServer s, String message, byte[] signature_message) {
 		return ClientConnections.connect(s, message, signature_message, "Get");
 	}
 
@@ -61,7 +62,7 @@ public class ClientConnections {
 		return j;
 	}
 
-	private static Message connect(Server s, String message, byte[] signature_message, String webResource) {
+	private static Message connect(IServer s, String message, byte[] signature_message, String webResource) {
 		Message m = new Message();
 		m.setStatus(400);
 		try {

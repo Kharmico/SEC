@@ -24,6 +24,13 @@ public class Password implements Serializable{
 		this.pduSignature=pduSignature;
 		this.timeStamp = timeStamp;
 	}
+	public Password(byte[] domain, byte[] username, byte[] password, byte[] pduSignature) {
+		this.domain=domain;
+		this.username=username;
+		this.password=password;
+		this.pduSignature=pduSignature;
+		this.timeStamp = 0;
+	}
 
 	public byte[] getDomain() {
 		return domain;

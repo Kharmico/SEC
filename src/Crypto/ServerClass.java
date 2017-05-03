@@ -1,4 +1,4 @@
-package Client;
+package Crypto;
 
 import java.security.PublicKey;
 
@@ -9,7 +9,7 @@ import javax.ws.rs.core.UriBuilder;
 
 import org.glassfish.jersey.client.ClientConfig;
 
-public class ServerClass implements Server {
+public class ServerClass implements IServer {
 	private String url;
 	private long time;
 	private int TIMEOUT = 120 * 1000;

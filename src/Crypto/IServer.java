@@ -1,10 +1,10 @@
-package Client;
+package Crypto;
 
 import java.security.PublicKey;
 
 import javax.ws.rs.client.WebTarget;
 
-public interface Server {
+public interface IServer {
 	/**
 	 * 
 	 * @return o url do servidor

@@ -202,6 +202,9 @@ public class Manager {
 	protected PrivateKey getServerPrivateKey() throws NoSuchAlgorithmException, UnrecoverableEntryException, KeyStoreException{
 		return KeyStoreFunc.getPrivateKey(ks, SERVER_PAIR_ALIAS, ksPassword);
 	}
+	protected PublicKey getServerPublicKeyKey() throws NoSuchAlgorithmException, UnrecoverableEntryException, KeyStoreException{
+		return KeyStoreFunc.getPublicKey(ks, SERVER_PAIR_ALIAS);
+	}
 
 	// //guardar uma secret key - dá Cannot store non private keys
 	// public void storeSecretKey(SecretKey key) throws KeyStoreException,
