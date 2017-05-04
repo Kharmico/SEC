@@ -1,0 +1,5 @@
+init bob 1234
+register_user
+save_password amazon bob qwer
+retrieve_password amazon bob
+close
