@@ -159,6 +159,7 @@ public class ClientManager implements PasswordManager {
 		String serialized_message = CryptoFunctions.serialize(m);
 		byte[] signed_message = CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
 		Password pw = null;
+		int counter =0;
 		for (IServer s : servers.values()) {
 			m = ClientConnections.get(s, serialized_message, signed_message);
 			if (validMessage(m)) {
@@ -167,7 +168,8 @@ public class ClientManager implements PasswordManager {
 					if (CryptoFunctions.verifySignature(
 							(new String(hash_d) + new String(hash_u) + new String(pw.getPassword())).getBytes(),
 							pw.getPasswordSignature(), pubk)) {
-						System.out.println("VERIFIED SIGNATURE WITH SUCCESS");
+						System.out.println("VERIFIED SIGNATURE WITH SUCCESS "+counter++);
+						System.out.println(pw.toString());
 						readList.add(pw);
 					}
 				}
@@ -176,29 +178,6 @@ public class ClientManager implements PasswordManager {
 		Password pwAux = null;
 		if (readList.size() > ((servers.size() + f) / 2)) {
 			pwAux = mostFrequent(readList);
-			// int passwordAux = 0;
-			// for (Password password : readList) {
-			// if (password != null)
-			// passwordAux++;
-			// else
-			// System.out.println("PASSWORD PASSWORD IS NULL");
-			// }
-			//
-			// System.out.println("PASSWORDAUX VALUE (counter): " +
-			// passwordAux);
-			//
-			// Password pwAux = null;
-			// if (passwordAux > ((servers.size() + f) / 2)) {
-			// long tsAux = 0;
-			// for (Password password : readList) {
-			// if (password != null) {
-			//
-			//// if (tsAux < password.getTimeStamp()) {
-			//// tsAux = password.getTimeStamp();
-			//// pwAux = password;
-			//// }
-			// }
-			// }
 			readList.clear();
 
 			nonce = CryptoFunctions.generateNonce();

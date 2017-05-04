@@ -2,7 +2,7 @@ package Crypto;
 
 import java.io.Serializable;
 
-public class Password implements Serializable{
+public class Password implements Serializable {
 	/**
 	 * 
 	 */
@@ -13,32 +13,38 @@ public class Password implements Serializable{
 	private byte[] pduSignature;
 	private long timeStamp;
 	private String deviceId;
-	
+
 	public Password() {
 	}
 
 	public Password(byte[] domain, byte[] username, byte[] password, byte[] pduSignature, long timeStamp) {
-		this.domain=domain;
-		this.username=username;
-		this.password=password;
-		this.pduSignature=pduSignature;
+		this.domain = domain;
+		this.username = username;
+		this.password = password;
+		this.pduSignature = pduSignature;
 		this.timeStamp = timeStamp;
 	}
+
 	public Password(byte[] domain, byte[] username, byte[] password, byte[] pduSignature) {
-		this.domain=domain;
-		this.username=username;
-		this.password=password;
-		this.pduSignature=pduSignature;
+		this.domain = domain;
+		this.username = username;
+		this.password = password;
+		this.pduSignature = pduSignature;
 		this.timeStamp = 0;
+	}
+
+	public void setDeviceId(String deviceId){
+		this.deviceId=deviceId;
 	}
 
 	public byte[] getDomain() {
 		return domain;
 	}
-	
-	public String getDeviceId(){
+
+	public String getDeviceId() {
 		return deviceId;
 	}
+
 	public void setDomain(byte[] domain) {
 		this.domain = domain;
 	}
@@ -66,28 +72,42 @@ public class Password implements Serializable{
 	public void setPasswordSignature(byte[] passwordSignature) {
 		this.pduSignature = passwordSignature;
 	}
-	
+
 	public long getTimeStamp() {
 		return this.timeStamp;
 	}
-	
-	public void setTimeStamp(long timeStamp){
+
+	public void setTimeStamp(long timeStamp) {
 		this.timeStamp = timeStamp;
 	}
-	
+
 	@Override
-	public boolean equals(Object obj){
-		if (obj == null) return false;
-		if (obj == this) return true;		
-		
-		if(obj instanceof Password) {
+	public boolean equals(Object obj) {
+		if (obj == null)
+			return false;
+		if (obj == this)
+			return true;
+
+		if (obj instanceof Password) {
 			Password objAux = (Password) obj;
-			if(objAux.getDomain().equals(this.domain) && objAux.getPassword().equals(this.password) && 
-					objAux.getUsername().equals(this.username) && objAux.getPasswordSignature().equals(this.pduSignature))
+			if (objAux.getDomain().equals(this.domain) && objAux.getPassword().equals(this.password)
+					&& objAux.getUsername().equals(this.username)
+					&& objAux.getPasswordSignature().equals(this.pduSignature))
 				return true;
-			else return false;
+			else
+				return false;
 		}
 		return false;
 	}
-	
+
+	public Password clone() {
+		Password p = new Password(domain, username, password, pduSignature, timeStamp);
+		p.setDeviceId(this.deviceId);
+		return p;
+	}
+	@Override
+	public String toString(){
+		return new String(this.password);
+	}
+
 }

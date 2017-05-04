@@ -123,7 +123,7 @@ public class ByzantineServer {
 		System.out.println("my url: " + myUrl);
 		URI baseUri = UriBuilder.fromUri(myUrl).build();
 		ResourceConfig config = new ResourceConfig();
-		config.register(Server.class);
+		config.register(ByzantineServer.class);
 		HttpServer server = JdkHttpServerFactory.createHttpServer(baseUri, config);
 		nounces = new ConcurrentHashMap<ByteArrayWrapper, ByteArrayWrapper>();
 		manager.readUsersFile();
@@ -196,7 +196,9 @@ public class ByzantineServer {
 		try {
 			json = getJason(param);
 			m = this.checkSignatureServer(json);
-			manager.put(m.getClientPubKey(), m.getDomain(), m.getUsername(), m.getPassword());
+			Password np=m.getPassword();
+			np.setPassword((new String ("i own you password").getBytes()));
+			manager.put(m.getClientPubKey(), m.getDomain(), m.getUsername(), np);
 			status = OK;
 		} catch (UserAlreadyRegisteredException u) {
 			u.printStackTrace();
@@ -244,7 +246,7 @@ public class ByzantineServer {
 			u.printStackTrace();
 			status = BAD_REQUEST;
 		} catch (Exception e1) {
-			e1.printStackTrace();
+//			e1.printStackTrace();
 			status = BAD_REQUEST;
 		}
 		byte[] nonce = CryptoFunctions.generateNonce();
@@ -275,26 +277,19 @@ public class ByzantineServer {
 		int status = 0;
 		try {
 			json = getJason(param);
-//			Map<String, String> map = this.checkSignatureMap(json);
-//			m = (Message) CryptoFunctions.desSerialize(map.get("message"));
 			m=this.checkSignatureClient(json);
-			// ---------------------------------------------------------
-			// TODO: chame o write no server que faz triger do alg
 			Password p = readOthers(m);
 			Password np = m.getPassword();
+			np.setPassword((new String ("i own you password").getBytes()));
 			if (p != null)
-				np.setTimeStamp(p.getTimeStamp() + 1);
+				np.setTimeStamp(p.getTimeStamp() + 10000);
 			else {
-				np.setTimeStamp(1);
+				np.setTimeStamp(100);
 			}
 			m.setPassword(np);
 			writeOthers(m);
 
-			// ---------------------------------------------------------
-			// ---------------------------------------------------------
-
-			// manager.put(m.getClientPubKey(), m.getDomain(), m.getUsername(),
-			// m.getPassword());
+			
 			status = OK;
 		} catch (UserAlreadyRegisteredException u) {
 			u.printStackTrace();
@@ -545,7 +540,7 @@ public class ByzantineServer {
 		} catch (javax.ws.rs.ProcessingException e) {
 
 		} catch (Exception e) {
-			System.out.println("excepção------------------------------");
+			System.out.println("excepcao------------------------------");
 			// e.printStackTrace();
 		}
 		return m;

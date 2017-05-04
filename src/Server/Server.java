@@ -244,7 +244,7 @@ public class Server {
 			u.printStackTrace();
 			status = BAD_REQUEST;
 		} catch (Exception e1) {
-			e1.printStackTrace();
+//			e1.printStackTrace();
 			status = BAD_REQUEST;
 		}
 		byte[] nonce = CryptoFunctions.generateNonce();
