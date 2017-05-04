@@ -65,9 +65,9 @@ import Exceptions.UsernameNotFoundException;
 public class Manager {
 
 	private static final String SERVER_PAIR_ALIAS = "serversec";
-	private static final String KS_PATH = System.getProperty("user.dir") + "\\Resources\\KeyStore%s.jks";
-	public static final String USERS_FILE = System.getProperty("user.dir") + "\\Resources\\%s\\Users";
-	public static final String DIR_PATH = System.getProperty("user.dir") + "\\Resources\\";
+	private static final String KS_PATH = System.getProperty("user.dir") + "/Resources/KeyStore%s.jks";
+	public static final String USERS_FILE = System.getProperty("user.dir") + "/Resources/%s/Users";
+	public static final String DIR_PATH = System.getProperty("user.dir") + "/Resources/";
 	private static final String CIPHER_ALG = "AES/ECB/PKCS5Padding";
 	private static String dirPath;
 	private static String usersFile;

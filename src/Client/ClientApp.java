@@ -16,7 +16,7 @@ import Crypto.KeyStoreFunc;
  */
 public class ClientApp {
 
-	private static final String KS_PATH = System.getProperty("user.dir") + "\\Resources\\";
+	private static final String KS_PATH = System.getProperty("user.dir") + "/Resources/";
 	private static final String CLIENT_PAIR_ALIAS = "clientPair";
 	
 	/**

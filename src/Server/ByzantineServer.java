@@ -76,7 +76,7 @@ import Exceptions.UserAlreadyRegisteredException;
  */
 @Path("/Server")
 public class ByzantineServer {
-	private static final String CERT_PATH = System.getProperty("user.dir") + "\\Resources\\serversec%s.cer";
+	private static final String CERT_PATH = System.getProperty("user.dir") + "/Resources/serversec%s.cer";
 	public static final String SERVER_NAME = "Server";
 	public static final int PORT = 9000;
 	public static final int OK = 200;

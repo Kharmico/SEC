@@ -38,7 +38,7 @@ import org.json.simple.JSONObject;
 //Class com cryptografica
 public class ClientManager implements PasswordManager {
 	private static final String CLIENT_PAIR_ALIAS = "clientPair";
-	private static final String CERT_PATH = System.getProperty("user.dir") + "\\Resources\\serversec%s.cer";
+	private static final String CERT_PATH = System.getProperty("user.dir") + "/Resources/serversec%s.cer";
 	private int f = 1;
 	// private long wts = 0;
 	private long rid = 0;
