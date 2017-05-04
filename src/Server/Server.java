@@ -545,7 +545,7 @@ public class Server {
 		} catch (javax.ws.rs.ProcessingException e) {
 
 		} catch (Exception e) {
-			System.out.println("excepção------------------------------");
+			System.out.println("excepcao------------------------------");
 			// e.printStackTrace();
 		}
 		return m;

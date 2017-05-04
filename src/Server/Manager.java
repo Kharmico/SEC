@@ -206,7 +206,7 @@ public class Manager {
 		return KeyStoreFunc.getPublicKey(ks, SERVER_PAIR_ALIAS);
 	}
 
-	// //guardar uma secret key - dá Cannot store non private keys
+	// //guardar uma secret key - da Cannot store non private keys
 	// public void storeSecretKey(SecretKey key) throws KeyStoreException,
 	// NoSuchAlgorithmException, CertificateException,
 	// FileNotFoundException, IOException {
