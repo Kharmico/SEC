@@ -23,6 +23,7 @@ import java.security.SignatureException;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -39,7 +40,7 @@ public class ClientManager implements PasswordManager {
 	private static final String CLIENT_PAIR_ALIAS = "clientPair";
 	private static final String CERT_PATH = System.getProperty("user.dir") + "\\Resources\\serversec%s.cer";
 	private int f = 1;
-//	private long wts = 0;
+	// private long wts = 0;
 	private long rid = 0;
 	private static List<String> ackList;
 	private static ArrayList<Password> readList;
@@ -56,9 +57,10 @@ public class ClientManager implements PasswordManager {
 		for (int i = 0; i < urls.length; i++) {
 			this.servers.put(urls[i], new ServerClass(urls[i]));
 		}
+		// assume that device id is uniq
 		Random r = new Random();
 		int Low = 1;
-		int High = 100;
+		int High = 10000;
 		Integer result = r.nextInt(High - Low) + Low;
 		ackList = new ArrayList<String>(servers.size());
 		readList = new ArrayList<Password>(servers.size());
@@ -132,60 +134,7 @@ public class ClientManager implements PasswordManager {
 		byte[] hash_u = CryptoFunctions.getHashMessage((new String(username) + salt).getBytes());
 		byte[] pduSignature = CryptoFunctions
 				.sign_data((new String(hash_d) + new String(hash_u) + new String(cypher_p)).getBytes(), privk);
-		// Message m = new Message(pubk, hash_d, hash_u, nonce, deviceId, rid);
 		Password pw = new Password(hash_d, hash_u, cypher_p, pduSignature);
-		// String serialized_message = CryptoFunctions.serialize(m);
-		// byte[] signed_message =
-		// CryptoFunctions.sign_data(serialized_message.getBytes(), privk);
-		// // read first
-		// for (IServer s : servers.values()) {
-		// m = ClientConnections.get(s, serialized_message, signed_message);
-		// if (validMessage(m)) {
-		// Password aux = m.getPassword();
-		// if (rid == m.getTimeStamp()) {
-		// if (CryptoFunctions.verifySignature(
-		// (new String(hash_d) + new String(hash_u) + new
-		// String(aux.getPassword())
-		// + Long.toHexString(aux.getTimeStamp())).getBytes(),
-		// aux.getPasswordSignature(), pubk)) {
-		// System.out.println("VERIFIED SIGNATURE WITH SUCCESS");
-		// readList.add(aux);
-		// }
-		// }
-		// }
-		// }
-		//
-		// int countReplys = 0;
-		// for (Password pass : readList) {
-		// if (pass != null)
-		// countReplys++;
-		// else
-		// System.out.println("PASSWORD PASSWORD IS NULL");
-		// }
-		//
-		// System.out.println("PASSWORDAUX VALUE (counter): " + countReplys);
-		//
-		// Password pwAux = null;
-		// if (countReplys > ((servers.size() + f) / 2)) {
-		// long tsAux = 0;
-		// for (Password passwordAux2 : readList) {
-		// if (passwordAux2 != null) {
-		// if (tsAux < passwordAux2.getTimeStamp()) {
-		// tsAux = passwordAux2.getTimeStamp();
-		// pwAux = passwordAux2;
-		// }
-		// }
-		// }
-		// readList.clear();
-		//
-		// nonce = CryptoFunctions.generateNonce();
-		// hash_d = pwAux.getDomain();
-		// hash_u = pwAux.getUsername();
-		// long pwWts = Math.max(pwAux.getTimeStamp(), wts);
-		// pw.setTimeStamp(pwWts);
-		// sendMsgServers(pubk, privk, hash_d, hash_u, pw, deviceId, pwWts);
-		// // finish read
-		// }
 		sendMsgServers(pubk, privk, hash_d, hash_u, pw, deviceId);
 	}
 
@@ -215,49 +164,56 @@ public class ClientManager implements PasswordManager {
 			if (validMessage(m)) {
 				pw = m.getPassword();
 				if (rid == m.getTimeStamp()) {
-					if (CryptoFunctions.verifySignature((new String(hash_d) + new String(hash_u) + new String(pw.getPassword())).getBytes(),pw.getPasswordSignature(), pubk)) {
+					if (CryptoFunctions.verifySignature(
+							(new String(hash_d) + new String(hash_u) + new String(pw.getPassword())).getBytes(),
+							pw.getPasswordSignature(), pubk)) {
 						System.out.println("VERIFIED SIGNATURE WITH SUCCESS");
 						readList.add(pw);
 					}
 				}
 			}
 		}
-
-		int passwordAux = 0;
-		for (Password password : readList) {
-			if (password != null)
-				passwordAux++;
-			else
-				System.out.println("PASSWORD PASSWORD IS NULL");
-		}
-
-		System.out.println("PASSWORDAUX VALUE (counter): " + passwordAux);
-
 		Password pwAux = null;
-		if (passwordAux > ((servers.size() + f) / 2)) {
-			long tsAux = 0;
-			for (Password password : readList) {
-				if (password != null) {
-					if (tsAux < password.getTimeStamp()) {
-						tsAux = password.getTimeStamp();
-						pwAux = password;
-					}
-				}
-			}
+		if (readList.size() > ((servers.size() + f) / 2)) {
+			pwAux = mostFrequent(readList);
+			// int passwordAux = 0;
+			// for (Password password : readList) {
+			// if (password != null)
+			// passwordAux++;
+			// else
+			// System.out.println("PASSWORD PASSWORD IS NULL");
+			// }
+			//
+			// System.out.println("PASSWORDAUX VALUE (counter): " +
+			// passwordAux);
+			//
+			// Password pwAux = null;
+			// if (passwordAux > ((servers.size() + f) / 2)) {
+			// long tsAux = 0;
+			// for (Password password : readList) {
+			// if (password != null) {
+			//
+			//// if (tsAux < password.getTimeStamp()) {
+			//// tsAux = password.getTimeStamp();
+			//// pwAux = password;
+			//// }
+			// }
+			// }
 			readList.clear();
 
 			nonce = CryptoFunctions.generateNonce();
 			hash_d = pwAux.getDomain();
 			hash_u = pwAux.getUsername();
-			long pwWts = pwAux.getTimeStamp();
+			// long pwWts = pwAux.getTimeStamp();
 
-			sendMsgServers(pubk, privk, hash_d, hash_u, pwAux, deviceId);
+			// sendMsgServers(pubk, privk, hash_d, hash_u, pwAux, deviceId);
 
 			return CryptoFunctions.decrypt_data_asymmetric(pwAux.getPassword(), privk);
 		}
 
 		System.out.println("PWAUX VALUE (in case of null): " + pwAux);
 		throw new NullByzantineQuorumException("Not enough correct servers!");
+
 	}
 
 	@Override
@@ -302,6 +258,19 @@ public class ClientManager implements PasswordManager {
 
 	private boolean validMessage(Message m) {
 		return m != null && m.getPassword() != null && m.getNounce() != null;
+	}
+
+	private Password mostFrequent(List<Password> passwords) {
+		Password mf = new Password();
+		int freq = 0;
+		for (Password p : passwords) {
+			int aux = Collections.frequency(passwords, p);
+			if (aux > freq) {
+				freq = aux;
+				mf = p;
+			}
+		}
+		return mf;
 	}
 
 }
