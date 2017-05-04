@@ -99,7 +99,7 @@ public class ClientConnections {
 			
 
 		}catch(Exception e){
-			System.out.println("excepção------------------------------");
+			System.out.println("excepcao------------------------------");
 			//e.printStackTrace();
 		}
 		return m;
