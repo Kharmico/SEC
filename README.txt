@@ -1,12 +1,14 @@
-Compile the code including the jersey jars on the path, those jars ars place in the lib foulder
+We have 4 scripts: sec_byzantine_server.sh, sec_crash_server.sh,
+sec_normal_2clients.sh, sec_normal_execution.sh
 
-Keystores and outher are providaded in resources foulder,the passwords are hardcoded in the codes as default keystores
-you can specify anouther KeyStore
+-sec_byzantine_server.sh runs 4 servers and 1 client where 1 of the servers is 
+byzantine
+-sec_crash_server.sh runs 4 servers where 1 of them crashes
+-sec_normal_2clients.sh runs a normal execution of 4 servers and 2 concurrent 
+clients
+-sec_normal_execution.sh runs a normal execution 4 servers and 1 client  
 
-To Test the program you haver a class called ClientApp with the method main, and the server.
-
-Exemple of comands executions 
-init bob 1234
-register_user 
-save_password google.com paulo qwerty
-retrieve_password google.com paulo
+To execute the testing scripts follow the following steps:
+1-in every .sh file replace the word "konsole" with the respective terminal used
+2-run each script with ./nameofthescript.sh
+3-enjoy :)
