@@ -1,0 +1,8 @@
+init ana 1234
+register_user
+save_password amazon ana qwer
+retrieve_password amazon ana
+save_password google anitas fixolas
+retrieve_password google anitas
+save_password google anitas 123$"so
+retrieve_password google anitas
